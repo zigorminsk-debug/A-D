@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Вариант C «Капля спокойствия»: скруглённый ромб-капля + пульс. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#E8A87C"
+        android:pathData="M54,54m-30,0a30,30 0,1 1,60 0a30,30 0,1 1,-60 0"/>
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M54,34c8.3,8.8 13,14.9 13,20.6 0,7.4 -5.8,13.4 -13,13.4s-13,-6 -13,-13.4C41,48.9 45.7,42.8 54,34z"/>
+    <path android:strokeColor="#1F4E79" android:strokeWidth="2.4"
+        android:pathData="M46,55h4l1.8,-4.8 2.6,8.2 2.2,-3.4H62"
+        android:strokeLineCap="round" android:strokeLineJoin="round"/>
+</vector>

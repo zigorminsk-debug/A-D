@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.BPDiary" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/secondary</item>
+        <item name="android:statusBarColor">@color/primary</item>
+        <!-- Фон приложения: чтобы вернуть однотонный, замените @drawable/bg_light на @color/bg -->
+        <item name="android:windowBackground">@drawable/bg_light</item>
+    </style>
+</resources>

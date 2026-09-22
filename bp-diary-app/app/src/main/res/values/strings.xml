@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Дневник АД</string>
+
+    <!-- Вкладки -->
+    <string name="tab_diary">Дневник</string>
+    <string name="tab_chart">График</string>
+    <string name="tab_meds">Таблетки</string>
+    <string name="tab_ref">Справка</string>
+    <string name="tab_reminders">Напоминания</string>
+    <string name="tab_memo">Памятка</string>
+
+    <!-- Справочник препаратов -->
+    <string name="ref_search_hint">Поиск: препарат или класс</string>
+    <string name="ref_count_fmt">Препаратов: %1$d</string>
+    <string name="ref_empty">Ничего не найдено.\nПопробуйте другое название.</string>
+    <string name="ref_disclaimer">⚕️ Справочная информация для ознакомления. Не для самолечения: препарат, дозу и режим подбирает только врач.</string>
+    <string name="sec_action">Действие</string>
+    <string name="sec_ind">Показания</string>
+    <string name="sec_gen">Дженерики (торговые названия)</string>
+    <string name="sec_contra">Противопоказания</string>
+    <string name="sec_side">Побочные действия</string>
+
+    <!-- Таблетки -->
+    <string name="add_med">Новый препарат</string>
+    <string name="edit_med">Изменить препарат</string>
+    <string name="med_name">Название препарата</string>
+    <string name="med_dose">Дозировка (например, 10 мг)</string>
+    <string name="med_times_label">Времена приёма (нажмите на время, чтобы убрать)</string>
+    <string name="med_add_time">+ Время приёма</string>
+    <string name="med_no_times">Времена приёма ещё не добавлены</string>
+    <string name="no_meds">Список препаратов пуст.\nНажмите «+», чтобы добавить лекарство\nи настроить напоминания приёма.</string>
+    <string name="med_tap_hint">нажмите — отметить приём • долгое нажатие — удалить</string>
+    <string name="history_title">История приёмов</string>
+    <string name="no_logs">Отметок пока нет.\nНажмите на препарат, чтобы отметить приём.</string>
+    <string name="mark_taken">Принял сейчас</string>
+    <string name="mark_skipped">Пропустил</string>
+    <string name="med_edit">Изменить</string>
+    <string name="med_delete_confirm">Удалить препарат и его напоминания?</string>
+    <string name="log_taken_fmt">✓ принят</string>
+    <string name="log_skipped_fmt">✗ пропущен</string>
+    <string name="notif_med_title_fmt">Время принять: %1$s</string>
+    <string name="notif_med_text">Пора принять лекарство. Откройте приложение и отметьте приём во вкладке «Таблетки».</string>
+    <string name="med_channel_name">Напоминания о приёме лекарств</string>
+    <string name="med_channel_desc">Уведомления о времени приёма препаратов</string>
+
+    <!-- Резервная копия -->
+    <string name="backup_title">💾 Резервная копия данных</string>
+    <string name="backup_desc">Сохраните все измерения, препараты и настройки одним файлом — и восстановите на новом телефоне.</string>
+    <string name="backup_save">Сохранить копию</string>
+    <string name="backup_restore">Восстановить</string>
+    <string name="restore_confirm">Текущие данные будут ЗАМЕНЕНЫ содержимым файла копии. Продолжить?</string>
+    <string name="backup_ok">Копия сохранена ✓</string>
+    <string name="backup_fail">Не удалось выполнить операцию с копией</string>
+    <string name="backup_restored">Данные восстановлены ✓ Будильники обновлены</string>
+    <string name="backup_bad">Файл не распознан как копия этого приложения</string>
+
+    <!-- Утро/вечер -->
+    <string name="stats_line_me">Утро/вечер (7 дн): %1$d/%2$d • %3$d/%4$d</string>
+
+    <!-- Виджет -->
+    <string name="widget_title">Последнее АД</string>
+    <string name="widget_empty_bp">—/—</string>
+    <string name="widget_empty_info">Измерений нет • нажмите, чтобы начать</string>
+    <string name="widget_pulse_fmt">пульс %1$d</string>
+
+    <!-- График и PDF -->
+    <string name="period_7">7 дн</string>
+    <string name="period_30">30 дн</string>
+    <string name="period_90">90 дн</string>
+    <string name="period_all">Всё</string>
+    <string name="chart_empty">График появится, когда будут измерения.\nВнесите первое давление во вкладке «Дневник».</string>
+    <string name="chart_avg_fmt">Измерений за период: %1$d • среднее %2$d/%3$d • пульс %4$d</string>
+    <string name="chart_avg_fmt_no_pulse">Измерений за период: %1$d • среднее %2$d/%3$d</string>
+    <string name="pdf_period_fmt">период: %1$s</string>
+    <string name="legend_sys">Систолическое</string>
+    <string name="legend_dia">Диастолическое</string>
+    <string name="legend_target">пунктир — цель 130/80</string>
+    <string name="export_pdf">Экспорт PDF-отчёта для врача</string>
+    <string name="export_pdf_btn">PDF-отчёт</string>
+    <string name="pdf_no_data">Нет измерений для отчёта</string>
+    <string name="pdf_subject">Дневник артериального давления — PDF-отчёт</string>
+    <string name="pdf_chooser">Отправить PDF-отчёт врачу</string>
+
+    <!-- Дневник -->
+    <string name="stats_title">Сводка</string>
+    <string name="no_records">Пока нет измерений.\nНажмите «+», чтобы добавить первое.</string>
+    <string name="add_record">Новое измерение</string>
+    <string name="edit_record">Изменить измерение</string>
+    <string name="save">Сохранить</string>
+    <string name="cancel">Отмена</string>
+    <string name="delete">Удалить</string>
+    <string name="delete_confirm_record">Удалить это измерение?</string>
+    <string name="delete_confirm_reminder">Удалить это напоминание?</string>
+    <string name="exact_open_fail">Не удалось открыть настройки будильников. Разрешите точные будильники в системных настройках приложения.</string>
+    <string name="hint_sys">Систолическое (верхнее)</string>
+    <string name="hint_dia">Диастолическое (нижнее)</string>
+    <string name="hint_pulse">Пульс</string>
+    <string name="hint_note">Заметка (необязательно)</string>
+    <string name="err_empty">Введите значение</string>
+    <string name="err_range_sys">От 60 до 300</string>
+    <string name="err_range_dia">От 30 до 200</string>
+    <string name="err_range_pulse">От 25 до 250</string>
+    <string name="err_sys_lt_dia">Верхнее должно быть больше нижнего</string>
+    <string name="export_csv">Экспорт CSV</string>
+    <string name="export_subject">Дневник артериального давления</string>
+    <string name="export_chooser">Отправить дневник врачу</string>
+    <string name="delete_record_title">Удаление</string>
+
+    <!-- Шаблоны для сводки и значений -->
+    <string name="bp_value">%1$d / %2$d</string>
+    <string name="pulse_value">Пульс: %1$d уд/мин</string>
+    <string name="stats_empty">Измерений пока нет.\nДобавьте первое измерение кнопкой «+».</string>
+    <string name="stats_line_counts">Измерений всего: %1$d  •  за 7 дней: %2$d</string>
+    <string name="stats_line_avg">Среднее за 7 дней: %1$d/%2$d мм рт.ст. • пульс %3$d</string>
+    <string name="stats_line_avg_no_pulse">Среднее за 7 дней: %1$d/%2$d мм рт.ст.</string>
+    <string name="stats_line_last">Последнее: %1$s — %2$d/%3$d (%4$s)</string>
+
+    <!-- Категории АД -->
+    <string name="cat_optimal">Оптимальное</string>
+    <string name="cat_normal">Норма</string>
+    <string name="cat_high_normal">Высокое нормальное</string>
+    <string name="cat_g1">АГ 1 степени</string>
+    <string name="cat_g2">АГ 2 степени</string>
+    <string name="cat_g3">АГ 3 степени</string>
+    <string name="cat_crisis">КРИЗИС — к врачу!</string>
+
+    <!-- Напоминания -->
+    <string name="add_reminder">Добавить напоминание</string>
+    <string name="pick_time">Время измерения</string>
+    <string name="reminder_label">Измерить давление</string>
+    <string name="reminder_hint_delete">Удерживайте, чтобы удалить</string>
+    <string name="no_reminders">Напоминаний нет.\nНажмите «+» и выберите время — приложение напомнит измерить давление.</string>
+    <string name="exact_title">Точные будильники отключены</string>
+    <string name="exact_text">Чтобы напоминания срабатывали минута в минуту, разрешите приложению «Будильники и напоминания» в настройках системы.</string>
+    <string name="exact_btn">Открыть настройки</string>
+    <string name="channel_name">Напоминания об измерении</string>
+    <string name="channel_desc">Уведомления о времени измерения давления</string>
+    <string name="notify_title">Пора измерить давление 🩺</string>
+    <string name="notify_text">Сядьте спокойно на 5 минут и измерьте АД. Результат внесите в дневник — врачу важна динамика.</string>
+
+    <!-- Памятка -->
+    <string name="memo_intro">Это приложение — ваш помощник в контроле артериального давления. Оно не заменяет врача, но помогает измерять регулярно, видеть динамику и ничего не забывать.</string>
+
+    <string name="memo_measure_title">📏 Как правильно измерять АД</string>
+    <string name="memo_measure">• Сядьте спокойно 5 минут: спина с опорой, ноги не скрещены\n• Манжета на плече на уровне сердца, нижний край на 2–3 см выше локтя\n• Не разговаривайте и не смотрите в телефон во время измерения\n• Измеряйте утром до таблеток и завтрака и вечером (например, 8:00 и 20:00)\n• Сделайте 2 измерения с интервалом 1–2 минуты, записывайте среднее\n• Не измеряйте 30 минут после кофе, сигареты, еды и нагрузки\n• Перед измерением опорожните мочевой пузырь</string>
+
+    <string name="memo_targets_title">🎯 Целевые значения (для большинства)</string>
+    <string name="memo_targets">• Общая цель — АД ниже 130/80 мм рт. ст.\n• Дома цель ниже: менее 135/85\n• Для пожилых и ослабленных пациентов цель подбирается врачом индивидуально\n• Каждые −10 мм рт. ст. систолического АД: инсульт −27 %, сердечная недостаточность −28 %</string>
+
+    <string name="memo_crisis_title">⚠️ Если давление резко «подскочило»</string>
+    <string name="memo_crisis">1. Сядьте, отдохните 5–10 минут, не паникуйте\n2. Измерьте давление повторно через 5 минут\n3. Если выше 180/120, но без симптомов — примите быстродействующий препарат, согласованный с вашим врачом (часто это каптоприл 12,5–25 мг), и измерьте снова через 30–60 минут\n4. НИКОГДА не кладите под язык нифедипин короткого действия — это опасно\n5. Если за час давление не снизилось — свяжитесь с врачом\n6. Не принимайте двойную дозу своих постоянных таблеток</string>
+
+    <string name="memo_red_title">🚨 Вызывайте скорую (103 / 112), если есть:</string>
+    <string name="memo_red">• Боль или давление в груди, одышка\n• Нарушение речи, асимметрия лица, слабость в руке или ноге\n• Резкая «самая сильная» головная боль, рвота\n• Внезапное нарушение зрения, онемение\n• Потеря сознания или судороги\n• АД выше 180/120 вместе с любым из этих симптомов</string>
+
+    <string name="memo_life_title">🥗 Образ жизни = «таблетка» без рецепта</string>
+    <string name="memo_life">• Соль: менее 5 г в сутки — уберите солонку, осторожно с колбасами и консервами\n• Овощи и фрукты — 400+ г в день (DASH-питание даёт до −11 мм рт. ст.)\n• Ходьба и активность — 150+ минут в неделю\n• Вес: минус 5 кг ≈ минус 5 мм рт. ст.\n• Алкоголь — минимум или ноль\n• Сон 7–9 часов; храп с дневной сонливостью → обследуйтесь на апноэ\n• Продукты с калием (если врач не ограничивал): курага, бананы, печёный картофель</string>
+
+    <string name="memo_meds_title">💊 Про таблетки</string>
+    <string name="memo_meds">• Принимайте ежедневно в одно и то же время — даже когда давление «нормальное»\n• Не отменяйте и не меняйте дозы самостоятельно\n• Поставьте напоминания в этом приложении на приём таблеток и измерения\n• Кашель после ингибитора АПФ или отёки после амлодипина — скажите врачу: есть равноценные замены\n• Раз в год по назначению врача: калий, креатинин, глюкоза, холестерин, ЭКГ</string>
+
+    <string name="memo_footer">Приложение носит справочный характер и не является медицинской рекомендацией. Все решения о лечении принимайте вместе с вашим врачом.</string>
+</resources>

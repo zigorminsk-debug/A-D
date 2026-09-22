@@ -1,0 +1,63 @@
+# Этот файл срабатывает, только если репозиторием является сама папка bp-diary-app.
+# В монорепозитории A-D сборку запускает корневой .github/workflows/android.yml.
+name: Build APK (Дневник АД)
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Забрать код
+        uses: actions/checkout@v4
+
+      - name: Установить JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Установить Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Платформа Android 34
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Собрать APK постоянным ключом
+        run: |
+          set -euo pipefail
+          test -f keystore/bp-diary.keystore
+          chmod +x gradlew
+          unset BP_KEYSTORE_PASSWORD BP_KEY_ALIAS BP_KEY_PASSWORD || true
+          ./gradlew assembleDebug assembleRelease --no-daemon
+          mkdir -p dist
+          cp app/build/outputs/apk/debug/app-debug.apk dist/BPDiary-debug.apk
+          cp app/build/outputs/apk/release/app-release.apk dist/BPDiary-release.apk
+
+      - name: Загрузить артефакт APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: BPDiary-APK
+          path: dist/*.apk
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Опубликовать APK в Releases
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest-apk --cleanup-tag --yes || true
+          gh release create latest-apk \
+            dist/BPDiary-release.apk \
+            dist/BPDiary-debug.apk \
+            --title "Дневник АД — последний APK" \
+            --notes "Автосборка ${{ github.sha }}. Подпись — постоянный ключ keystore/bp-diary.keystore (alias bpdiary). Обновление ставится поверх. Ставьте BPDiary-release.apk."

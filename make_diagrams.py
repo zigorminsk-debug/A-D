@@ -4,6 +4,10 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
+from pathlib import Path
+
+OUT = Path(__file__).resolve().parent / "book" / "img"
+OUT.mkdir(parents=True, exist_ok=True)
 
 plt.rcParams["font.family"] = "DejaVu Sans"
 NAVY, TEAL, IVORY, CORAL, GRAY = "#1F4E79", "#2E74B5", "#FBF6EA", "#E8A87C", "#666666"
@@ -33,44 +37,49 @@ for x, txt, y in miles:
     ax.scatter([x], [1.55], s=26, color=CORAL, zorder=5)
     ax.text(x, 0.75, txt, ha="center", va="center", fontsize=7.6, color=CORAL, fontweight="bold")
 plt.tight_layout(pad=0.4)
-plt.savefig("/home/user/book/img/timeline.png", facecolor="white")
+plt.savefig(OUT / "timeline.png", facecolor="white")
 plt.close()
 
 # ---------- 2. Алгоритм выбора ----------
-fig, ax = plt.subplots(figsize=(11.5, 8.2), dpi=200)
+fig, ax = plt.subplots(figsize=(12.4, 9.0), dpi=200)
 ax.axis("off"); ax.set_xlim(0, 100); ax.set_ylim(0, 100)
 
 def box(x, y, w, h, text, fc, ec, fs=10, bold=True, tc="#1a1a1a"):
-    ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.8",
-                                fc=fc, ec=ec, lw=1.8))
+    ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.6",
+                                fc=fc, ec=ec, lw=1.6))
     ax.text(x + w/2, y + h/2, text, ha="center", va="center", fontsize=fs,
             fontweight="bold" if bold else "normal", color=tc)
 
-def arrow(x1, y1, x2, y2, label=None, lx=0, ly=0):
-    ax.add_patch(FancyArrowPatch((x1, y1), (x2, y2), arrowstyle="-|>",
-                                 mutation_scale=16, lw=1.6, color=NAVY))
+def arrow(x1, y1, x2, y2, label=None, lx=0, ly=0, rad=0.0):
+    ax.add_patch(FancyArrowPatch(
+        (x1, y1), (x2, y2), arrowstyle="-|>",
+        connectionstyle=f"arc3,rad={rad}",
+        mutation_scale=14, lw=1.5, color=NAVY, zorder=3))
     if label:
-        ax.text((x1+x2)/2 + lx, (y1+y2)/2 + ly, label, fontsize=8.6, color=NAVY,
-                ha="center", va="center", bbox=dict(fc="white", ec="none", pad=1))
+        ax.text((x1 + x2) / 2 + lx, (y1 + y2) / 2 + ly, label, fontsize=8.4,
+                color=NAVY, ha="center", va="center", zorder=4,
+                bbox=dict(fc="white", ec="none", pad=1.2))
 
-box(30, 88, 40, 9, "Киста придатка яичка\n(УЗИ-подтверждение, симптомы / размер)", NAVY, NAVY, 11, tc="white")
-box(25, 72, 21, 9, "Бессимптомная\n≤ 1 см", IVORY, TEAL, 10)
-box(54, 72, 21, 9, "Симптомы, размер > 2 см,\nрост, деформация", IVORY, CORAL, 9.5)
-box(2, 52, 34, 12, "НАБЛЮДЕНИЕ\nУЗИ 6–12 мес;\nу детей регресс 71–77 %", "#EAF3FB", TEAL, 9.5)
-box(60, 52, 38, 12, "Оценка репродуктивных планов\n+ спермограмма;\nисключить другую патологию", "#FDEEE2", CORAL, 9.5)
-arrow(45.5, 76.5, 30, 64.5, "да", -3, 2)
-arrow(59, 76.5, 74, 64.5, "да", 4, 2)
-box(2, 30, 30, 14, "МИКРОХИРУРГИЧЕСКАЯ\nСПЕРМАТОЦЕЛЭКТОМИЯ\n(оптика 6–25×)\nрецидив 0–5 %, придаток сохранён", "#EAF3FB", TEAL, 9)
-box(35, 30, 30, 14, "СПЕРМАТОЦЕЛЭКТОМИЯ\n± ЭПИДИДИМЭКТОМИЯ\nрецидив 5–14 %;\nэпидидимэктомия — только при\nзавершённой фертильности", "#FDEEE2", CORAL, 8.6)
-box(68, 30, 30, 14, "АСПИРАЦИЯ +\nСКЛЕРОТЕРАПИЯ\n(доксициклин / полидоканол / СТС)\nуспех 70–90 %, рецидив 10–30 %;\nНЕ при планах на детей", "#FFF7E6", "#C8871E", 8.6)
-arrow(19, 52, 17, 44.5, "при росте / боли", 12, 0)
-arrow(79, 52, 50, 44.8, "планы на детей", -14, 2.5)
-arrow(79, 52, 83, 44.5, "дети не планируются,\nвысокий риск или отказ\nот операции", 22, 2.2)
-box(18, 8, 64, 12, "ОСЛОЖНЁННАЯ КИСТА (разрыв, кровоизлияние, инфицирование)\nэкстренная госпитализация: обезболивание, ревизия / дренирование\nпо показаниям, антибиотики при инфекции", "#FBEAEA", "#B03A3A", 9.2, tc="#7A1F1F")
-ax.text(50, 2.5, "Лечим симптом и рост, а не «картинку на УЗИ» — бессимптомная киста лечения не требует",
+box(28, 90, 44, 8, "Киста придатка яичка\n(УЗИ-подтверждение)", NAVY, NAVY, 11, tc="white")
+box(6, 76, 28, 8, "Бессимптомная\n≤ 1 см", IVORY, TEAL, 10)
+box(62, 76, 32, 8, "Симптомы, > 2 см,\nрост, деформация", IVORY, CORAL, 10)
+box(2, 58, 34, 11, "НАБЛЮДЕНИЕ\nУЗИ 6–12 мес;\nу детей регресс 71–77 %", "#EAF3FB", TEAL, 9.2)
+box(42, 58, 56, 11, "Оценка репродуктивных планов + спермограмма\nисключить другую патологию", "#FDEEE2", CORAL, 9.4)
+arrow(20, 76, 19, 69)
+arrow(78, 76, 70, 69)
+arrow(36, 63.5, 42, 63.5, "при росте / боли", 0, 2.6)
+box(2, 28, 30, 16, "МИКРОХИРУРГИЧЕСКАЯ\nСПЕРМАТОЦЕЛЭКТОМИЯ\nоптика 6–25×\nрецидив 0–5 %\nпридаток сохранён", "#EAF3FB", TEAL, 8.6)
+box(35, 28, 30, 16, "СПЕРМАТОЦЕЛЭКТОМИЯ\n± ЭПИДИДИМЭКТОМИЯ\nрецидив 5–14 %\nэпидидимэктомия — только\nпри завершённой фертильности", "#FDEEE2", CORAL, 8.2)
+box(68, 28, 30, 16, "АСПИРАЦИЯ +\nСКЛЕРОТЕРАПИЯ\nуспех 70–90 %\nрецидив 10–30 %\nНЕ при планах на детей", "#FFF7E6", "#C8871E", 8.4)
+# Подписи стоят в промежутке между блоками, стрелки не пересекают чужие решения.
+arrow(50, 58, 17, 44, "планы\nна детей", -8, 1.5, rad=0.18)
+arrow(70, 58, 50, 44, "фертильность\nзавершена", 0, 1.2)
+arrow(90, 58, 83, 44, "отказ или\nвысокий риск", 0, 1.2)
+box(14, 8, 72, 12, "ОСЛОЖНЁННАЯ КИСТА (разрыв, кровоизлияние, инфицирование)\nэкстренная госпитализация: обезболивание, ревизия / дренирование,\nантибиотики при инфекции", "#FBEAEA", "#B03A3A", 9.2, tc="#7A1F1F")
+ax.text(50, 3.2, "Лечим симптом и рост, а не «картинку на УЗИ» — бессимптомная киста лечения не требует",
         ha="center", fontsize=9.5, style="italic", color=GRAY)
 plt.tight_layout(pad=0.4)
-plt.savefig("/home/user/book/img/algorithm.png", facecolor="white")
+plt.savefig(OUT / "algorithm.png", facecolor="white")
 plt.close()
 
 # ---------- 3. Диапазоны рецидива ----------
@@ -95,6 +104,6 @@ ax.grid(axis="x", ls=":", alpha=0.55, zorder=0)
 ax.set_title("Рецидив кисты придатка после различных методов лечения", fontsize=12.5,
              fontweight="bold", color=NAVY, pad=12)
 plt.tight_layout(pad=0.6)
-plt.savefig("/home/user/book/img/recurrence.png", facecolor="white")
+plt.savefig(OUT / "recurrence.png", facecolor="white")
 plt.close()
 print("diagrams OK")

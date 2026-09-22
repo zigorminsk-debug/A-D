@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Вариант D «Дневник»: журнал + сердечко на обложке. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#5E35B1"
+        android:pathData="M54,54m-30,0a30,30 0,1 1,60 0a30,30 0,1 1,-60 0"/>
+    <!-- тетрадь -->
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M40,36h24a4,4 0,0 1,4 4v28a4,4 0,0 1,-4 4h-24z"/>
+    <!-- пружина -->
+    <path android:strokeColor="#FFFFFF" android:strokeWidth="2.4"
+        android:pathData="M40,40h-4M40,47h-4M40,54h-4M40,61h-4M40,68h-4"/>
+    <!-- сердечко на обложке -->
+    <path android:fillColor="#5E35B1"
+        android:pathData="M55.5,62.7l-1.1,-1C50.9,58.7 48,56.1 48,52.9c0,-2.6 2,-4.6 4.6,-4.6 1.5,0 3,0.7 3.9,1.9 0.9,-1.2 2.4,-1.9 3.9,-1.9 2.6,0 4.6,2 4.6,4.6 0,3.2 -2.9,5.8 -6.4,8.8L55.5,62.7z"/>
+</vector>

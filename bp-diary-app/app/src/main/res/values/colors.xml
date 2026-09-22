@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="primary">#1F4E79</color>
+    <color name="secondary">#2E74B5</color>
+    <color name="bg">#F2F6FA</color>
+    <color name="white">#FFFFFF</color>
+    <!-- Не переопределять в values-night: иконка FAB должна оставаться белой -->
+    <color name="onPrimary">#FFFFFF</color>
+    <color name="textDark">#1A1A1A</color>
+    <color name="gray">#66707A</color>
+
+    <color name="catOptimal">#2E7D32</color>
+    <color name="catNormal">#558B2F</color>
+    <color name="catHighNormal">#F9A825</color>
+    <color name="catG1">#EF6C00</color>
+    <color name="catG2">#D84315</color>
+    <color name="catG3">#C62828</color>
+    <color name="catCrisis">#8E0000</color>
+</resources>

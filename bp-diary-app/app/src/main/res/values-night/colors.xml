@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Ночная палитра: переопределяет значения из values/colors.xml в тёмной теме -->
+    <color name="white">#1E2836</color>          <!-- поверхности карточек -->
+    <color name="bg">#121821</color>
+    <color name="textDark">#E8EDF4</color>       <!-- основной текст -->
+    <color name="gray">#97A3B0</color>
+    <color name="primary">#4A90D9</color>        <!-- акцент ярче -->
+    <color name="secondary">#6FA8DC</color>
+</resources>

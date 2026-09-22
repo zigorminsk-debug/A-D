@@ -6,6 +6,9 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent
 
 ACCENT = RGBColor(0x1F, 0x4E, 0x79)
 ACCENT2 = RGBColor(0x2E, 0x74, 0xB5)
@@ -111,7 +114,7 @@ para("Обзор нарративный (структурированный). П
      "aspiration, microsurgical. Включались оригинальные серии, рандомизированные исследования смежной "
      "патологии (гидроцеле), главы руководств (Campbell-Walsh-Wein) и клинические рекомендации EAU. "
      "Формальный PRISMA-протокол не применялся; обзор не претендует на исчерпывающий охват "
-     "нек indeксируемой литературы.", justify=True)
+     "неиндексируемой литературы.", justify=True)
 
 # ================= 3. ТЕРМИНОЛОГИЯ =================
 doc.add_heading("3. Терминология, эпидемиология, этиопатогенез", level=1)
@@ -334,5 +337,5 @@ para("", size=6)
 p = para("Обзор подготовлен в справочных целях; не является клинической рекомендацией. Окончательная "
          "тактика определяется лечащим врачом.", size=9, italic=True)
 
-doc.save("/home/user/Обзор_Лечение_сперматоцеле_1970-2026.docx")
+doc.save(str(ROOT / "Обзор_Лечение_сперматоцеле_1970-2026.docx"))
 print("OK")

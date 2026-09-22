@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/action_diary"
+        android:icon="@drawable/ic_heart"
+        android:title="@string/tab_diary" />
+    <item
+        android:id="@+id/action_chart"
+        android:icon="@drawable/ic_chart"
+        android:title="@string/tab_chart" />
+    <item
+        android:id="@+id/action_meds"
+        android:icon="@drawable/ic_pill"
+        android:title="@string/tab_meds" />
+    <item
+        android:id="@+id/action_ref"
+        android:icon="@drawable/ic_ref"
+        android:title="@string/tab_ref" />
+    <item
+        android:id="@+id/action_reminders"
+        android:icon="@drawable/ic_alarm"
+        android:title="@string/tab_reminders" />
+    <item
+        android:id="@+id/action_memo"
+        android:icon="@drawable/ic_book"
+        android:title="@string/tab_memo" />
+</menu>
