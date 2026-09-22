@@ -196,6 +196,14 @@ class Store(context: Context) {
         saveRecords(records().filter { it.id != id })
     }
 
+    fun patientName(): String = sp.getString("patient_name", "").orEmpty().trim()
+
+    fun patientAge(): Int = sp.getInt("patient_age", 0)
+
+    fun savePatient(name: String, age: Int) {
+        sp.edit().putString("patient_name", name.trim()).putInt("patient_age", age).apply()
+    }
+
     // ---------- Напоминания об измерении ----------
 
     fun reminders(): MutableList<Reminder> {
@@ -432,6 +440,8 @@ class Store(context: Context) {
         root.put("app", "bp-diary")
         root.put("schema", 1)
         root.put("exported", System.currentTimeMillis())
+        root.put("patientName", patientName())
+        root.put("patientAge", patientAge())
 
         val recs = JSONArray()
         records().forEach { r ->
@@ -506,6 +516,10 @@ class Store(context: Context) {
             e.putString("reminders", root.optJSONArray("reminders")?.toString() ?: "[]")
             e.putString("meds", root.optJSONArray("meds")?.toString() ?: "[]")
             e.putString("medlogs", root.optJSONArray("logs")?.toString() ?: "[]")
+            if (root.has("patientName") || root.has("patientAge")) {
+                e.putString("patient_name", root.optString("patientName").trim())
+                e.putInt("patient_age", root.optInt("patientAge", 0))
+            }
             e.commit()
             repairAlarmIds()
             true

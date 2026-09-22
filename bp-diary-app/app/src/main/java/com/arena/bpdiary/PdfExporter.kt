@@ -23,7 +23,13 @@ object PdfExporter {
     private const val M = 40f
     private const val BOTTOM = 786f
 
-    fun build(context: Context, recordsDesc: List<BpRecord>, periodNote: String? = null): File? {
+    fun build(
+        context: Context,
+        recordsDesc: List<BpRecord>,
+        periodNote: String? = null,
+        patientName: String,
+        patientAge: Int
+    ): File? {
         if (recordsDesc.isEmpty()) return null
         val asc = recordsDesc.sortedBy { it.time }
 
@@ -76,12 +82,34 @@ object PdfExporter {
             page = doc.startPage(PdfDocument.PageInfo.Builder(PAGE_W, PAGE_H, pageIndex).create())
             c = page.canvas
             y = 48f
-            c.drawText("Дневник АД — продолжение", M, y, h2)
+            val cont = ellipsize("Дневник АД — $patientName", h2, PAGE_W - 2 * M)
+            c.drawText(cont, M, y, h2)
             y += 18f
         }
 
         fun ensure(need: Float) {
             if (y + need > BOTTOM) newPage()
+        }
+
+        fun drawWrapped(text: String, paint: Paint) {
+            val maxW = PAGE_W - 2 * M
+            val words = text.split(Regex("\\s+")).filter { it.isNotEmpty() }
+            if (words.isEmpty()) return
+            var line = ""
+            for (word in words) {
+                val trial = if (line.isEmpty()) word else "$line $word"
+                if (paint.measureText(trial) > maxW && line.isNotEmpty()) {
+                    ensure(14f)
+                    c.drawText(line, M, y, paint)
+                    y += 14f
+                    line = word
+                } else {
+                    line = trial
+                }
+            }
+            ensure(14f)
+            c.drawText(line, M, y, paint)
+            y += 16f
         }
 
         c.drawText("Дневник артериального давления — отчёт", M, y, title)
@@ -96,11 +124,13 @@ object PdfExporter {
         y += 20f
 
         val patient = Paint(body).apply { typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD) }
-        c.drawText("Пациент:", M, y, patient)
-        c.drawLine(M + 52f, y + 2f, M + 250f, y + 2f, thin)
-        c.drawText("Дата отчёта:", M + 270f, y, patient)
-        c.drawLine(M + 350f, y + 2f, PAGE_W - M, y + 2f, thin)
-        y += 22f
+        drawWrapped("Пациент: $patientName", patient)
+        val ageLine = "Возраст: $patientAge ${yearsWord(patientAge)}"
+        val reportDate = "Дата отчёта: ${SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date())}"
+        ensure(16f)
+        c.drawText(ageLine, M, y, patient)
+        c.drawText(reportDate, PAGE_W - M - patient.measureText(reportDate), y, patient)
+        y += 20f
 
         c.drawText("Сводка", M, y, h2)
         y += 16f
@@ -209,5 +239,23 @@ object PdfExporter {
         FileOutputStream(f).use { doc.writeTo(it) }
         doc.close()
         return f
+    }
+
+    private fun yearsWord(age: Int): String {
+        val n100 = age % 100
+        val n10 = age % 10
+        return when {
+            n100 in 11..14 -> "лет"
+            n10 == 1 -> "год"
+            n10 in 2..4 -> "года"
+            else -> "лет"
+        }
+    }
+
+    private fun ellipsize(text: String, paint: Paint, maxW: Float): String {
+        if (paint.measureText(text) <= maxW) return text
+        var cut = text
+        while (cut.isNotEmpty() && paint.measureText("$cut…") > maxW) cut = cut.dropLast(1)
+        return if (cut.isEmpty()) "" else "$cut…"
     }
 }

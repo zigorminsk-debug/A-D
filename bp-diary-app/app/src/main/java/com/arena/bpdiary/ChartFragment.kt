@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.arena.bpdiary.databinding.FragmentChartBinding
 
@@ -74,28 +73,7 @@ class ChartFragment : Fragment() {
     }
 
     private fun exportPdf() {
-        val recs = visibleRecords()
-        if (recs.isEmpty()) {
-            Toast.makeText(requireContext(), R.string.pdf_no_data, Toast.LENGTH_SHORT).show()
-            return
-        }
-        val f = PdfExporter.build(
-            requireContext(),
-            recs,
-            getString(R.string.pdf_period_fmt, periodLabel())
-        ) ?: return
-        val uri = androidx.core.content.FileProvider.getUriForFile(
-            requireContext(), "${requireContext().packageName}.fileprovider", f
-        )
-        val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-            type = "application/pdf"
-            putExtra(android.content.Intent.EXTRA_SUBJECT, getString(R.string.pdf_subject))
-            putExtra(android.content.Intent.EXTRA_STREAM, uri)
-            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }
-        startActivity(
-            android.content.Intent.createChooser(intent, getString(R.string.pdf_chooser))
-        )
+        PdfShare.start(this, visibleRecords(), getString(R.string.pdf_period_fmt, periodLabel()))
     }
 
     override fun onDestroyView() {

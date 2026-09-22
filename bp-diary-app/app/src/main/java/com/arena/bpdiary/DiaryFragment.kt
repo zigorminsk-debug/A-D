@@ -629,22 +629,7 @@ class DiaryFragment : Fragment() {
     }
 
     private fun exportPdf() {
-        val recs = store.records()
-        if (recs.isEmpty()) {
-            android.widget.Toast.makeText(requireContext(), R.string.pdf_no_data, android.widget.Toast.LENGTH_SHORT).show()
-            return
-        }
-        val f = PdfExporter.build(requireContext(), recs) ?: return
-        val uri = androidx.core.content.FileProvider.getUriForFile(
-            requireContext(), "${requireContext().packageName}.fileprovider", f
-        )
-        val i = Intent(Intent.ACTION_SEND).apply {
-            type = "application/pdf"
-            putExtra(Intent.EXTRA_SUBJECT, getString(R.string.pdf_subject))
-            putExtra(Intent.EXTRA_STREAM, uri)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }
-        startActivity(Intent.createChooser(i, getString(R.string.pdf_chooser)))
+        PdfShare.start(this, store.records(), null)
     }
 
     override fun onDestroyView() {
