@@ -122,20 +122,16 @@ bp-diary-app/
 
 ## 🎨 Иконка и фон (кастомизация)
 
-В проекте — **6 вариантов иконки** и **2 фона** (полный лист выбора: `design/preview_all.png`).
+Сейчас стоит **тонометр** (`design/icon-choices/01-tonometer-full.png`). Лист выбора: `design/icon-choices/choice-sheet.png`.
 
 | Вариант | Файл |
 |---|---|
-| A. Пульс (вектор) | `design/vector-variants/icon_a_pulse.xml` |
-| B. Тонометр (вектор) | `design/vector-variants/icon_b_meter.xml` |
-| C. Капля (вектор) | `design/vector-variants/icon_c_drop.xml` |
-| D. Дневник (вектор) | `design/vector-variants/icon_diary_book.xml` |
-| **E. Тонометр HD — активная** | `design/icon_e_tonometer.png` → `res/drawable-nodpi/ic_launcher_fg.png` + mipmaps |
-| F. Сердце+пульс HD | `design/icon_f_heart_pulse.png` |
+| **1. Тонометр — активная** | `design/icon-choices/01-tonometer-full.png` |
+| 2. Сердце | `design/icon-choices/02-heart-full.png` |
+| 3. Дневник | `design/icon-choices/03-diary-full.png` |
+| 4. Манжета | `design/icon-choices/04-cuff-full.png` |
 
-**Как включить другой вариант:**
-- **E/F (растровые):** замените `app/src/main/res/drawable-nodpi/ic_launcher_fg.png` на нужный PNG (квадрат 512×512) и пересоберите — адаптивная иконка подхватит его сама.
-- **A–D (векторные):** скопируйте выбранный XML в `res/drawable/ic_launcher_fg.xml`, удалив PNG-версию, и в `mipmap-anydpi-v26/ic_launcher.xml` оставьте foreground `@drawable/ic_launcher_fg`.
+**Как включить другой вариант:** замените `app/src/main/res/drawable-nodpi/ic_launcher_fg.png` на полный квадрат 512×512 без заранее скруглённых углов и обновите `mipmap-*/ic_launcher.png`. Не кладите рядом `drawable/ic_launcher_fg.xml` — имя ресурса одно.
 
 **Фон главного экрана** (уже подключён светлый):
 - Светлый: `res/drawable-nodpi/bg_light.png` — активен (`Theme.BPDiary → android:windowBackground`)
