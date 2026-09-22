@@ -20,8 +20,9 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      # v3 по умолчанию ставит снятый пакет tools и падает с exit 1.
       - name: Установить Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
       - name: Платформа Android 34
         run: |
