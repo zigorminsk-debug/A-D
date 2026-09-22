@@ -8,6 +8,7 @@ import com.arena.bpdiary.databinding.ActivityMainBinding
 class MainActivity : AppCompatActivity() {
 
     private lateinit var b: ActivityMainBinding
+    private var uiReady = false
 
     companion object {
         private const val STATE_TAB = "tab"
@@ -37,8 +38,18 @@ class MainActivity : AppCompatActivity() {
             if (savedInstanceState == null) {
                 show(DiaryFragment())
             }
+            uiReady = true
         } catch (e: Exception) {
             showStartupError(e)
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (!uiReady) return
+        try {
+            AppUpdater.onHostResume(this)
+        } catch (_: Exception) {
         }
     }
 

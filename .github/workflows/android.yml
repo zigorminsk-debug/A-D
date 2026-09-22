@@ -126,12 +126,29 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
+          # Первые строки читает приложение (AppUpdater). Не убирать versionCode.
+          gradle_file=bp-diary-app/app/build.gradle
+          code=$(sed -n 's/^[[:space:]]*versionCode[[:space:]]*\([0-9][0-9]*\).*/\1/p' "$gradle_file" | head -1)
+          name=$(sed -n 's/^[[:space:]]*versionName[[:space:]]*"\([^"]*\)".*/\1/p' "$gradle_file" | head -1)
+          test -n "$code"
+          test -n "$name"
+          sha=$(sha256sum dist/BPDiary-release.apk | awk '{print $1}')
+          test "${#sha}" -eq 64
+          printf '{"versionCode":%s,"versionName":"%s","sha256":"%s"}\n' "$code" "$name" "$sha" > dist/version.json
+          {
+            printf 'versionCode: %s\n' "$code"
+            printf 'versionName: %s\n' "$name"
+            printf 'sha256: %s\n' "$sha"
+            printf 'Автосборка %s (%s). Оба файла подписаны постоянным ключом bp-diary-app/keystore/bp-diary.keystore (alias bpdiary). Обновление ставится поверх без удаления данных. Для установки берите BPDiary-release.apk.\n' "$GITHUB_SHA" "$GITHUB_REF_NAME"
+          } > dist/release-notes.txt
           gh release delete latest-apk --cleanup-tag --yes || true
           gh release create latest-apk \
             dist/BPDiary-release.apk \
             dist/BPDiary-debug.apk \
+            dist/version.json \
             --title "Дневник АД — последний APK" \
-            --notes "Автосборка ${{ github.sha }} (${{ github.ref_name }}). Оба файла подписаны постоянным ключом bp-diary-app/keystore/bp-diary.keystore (alias bpdiary). Обновление ставится поверх без удаления данных. Для установки берите BPDiary-release.apk."
+            --notes-file dist/release-notes.txt
 
       - name: Краткий итог
         run: |
@@ -139,4 +156,5 @@ jobs:
             echo "### APK собран постоянным ключом"
             echo "Скачать: артефакт **BPDiary-APK** и релиз \`latest-apk\`."
             echo "Ключ не менять: \`bp-diary-app/keystore/bp-diary.keystore\`."
+            echo "Установленное приложение само проверяет релиз \`latest-apk\` и предлагает более новый versionCode."
           } >> "$GITHUB_STEP_SUMMARY"

@@ -69,9 +69,24 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
+          code=$(sed -n 's/^[[:space:]]*versionCode[[:space:]]*\([0-9][0-9]*\).*/\1/p' app/build.gradle | head -1)
+          name=$(sed -n 's/^[[:space:]]*versionName[[:space:]]*"\([^"]*\)".*/\1/p' app/build.gradle | head -1)
+          test -n "$code"
+          test -n "$name"
+          sha=$(sha256sum dist/BPDiary-release.apk | awk '{print $1}')
+          test "${#sha}" -eq 64
+          printf '{"versionCode":%s,"versionName":"%s","sha256":"%s"}\n' "$code" "$name" "$sha" > dist/version.json
+          {
+            printf 'versionCode: %s\n' "$code"
+            printf 'versionName: %s\n' "$name"
+            printf 'sha256: %s\n' "$sha"
+            printf 'Автосборка %s. Подпись — постоянный ключ keystore/bp-diary.keystore (alias bpdiary). Обновление ставится поверх. Ставьте BPDiary-release.apk.\n' "$GITHUB_SHA"
+          } > dist/release-notes.txt
           gh release delete latest-apk --cleanup-tag --yes || true
           gh release create latest-apk \
             dist/BPDiary-release.apk \
             dist/BPDiary-debug.apk \
+            dist/version.json \
             --title "Дневник АД — последний APK" \
-            --notes "Автосборка ${{ github.sha }}. Подпись — постоянный ключ keystore/bp-diary.keystore (alias bpdiary). Обновление ставится поверх. Ставьте BPDiary-release.apk."
+            --notes-file dist/release-notes.txt

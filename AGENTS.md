@@ -21,6 +21,8 @@
 
 При каждом выпуске увеличивать `versionCode` в `bp-diary-app/app/build.gradle` на 1. Иначе Android откажется ставить сборку поверх.
 
+Приложение само читает релиз `latest-apk`. В заметках релиза обязательны строки `versionCode:`, `versionName:` и `sha256:` — их пишет workflow, не удалять. Токен GitHub и `GH_TOKEN` в APK не вшивать.
+
 ## APK на GitHub
 
 После push workflow `.github/workflows/android.yml` сам собирает debug и release тем же ключом.

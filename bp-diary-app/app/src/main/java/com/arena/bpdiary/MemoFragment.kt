@@ -36,6 +36,17 @@ class MemoFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         b.btnBackup.setOnClickListener { saveBackup.launch("bp-diary-backup.json") }
         b.btnRestore.setOnClickListener { openBackup.launch(arrayOf("*/*")) }
+        b.btnUpdate.setOnClickListener {
+            (activity as? androidx.appcompat.app.AppCompatActivity)?.let { AppUpdater.start(it, manual = true) }
+        }
+        b.btnUpdateToken.setOnClickListener {
+            (activity as? androidx.appcompat.app.AppCompatActivity)?.let { AppUpdater.showTokenDialog(it) }
+        }
+        try {
+            val p = requireContext().packageManager.getPackageInfo(requireContext().packageName, 0)
+            b.txtUpdateNow.text = getString(R.string.update_current, p.versionName ?: "")
+        } catch (_: Exception) {
+        }
     }
 
     private fun writeBackup(uri: Uri) {

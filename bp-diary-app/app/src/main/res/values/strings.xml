@@ -55,6 +55,33 @@
     <string name="backup_restored">Данные восстановлены ✓ Будильники обновлены</string>
     <string name="backup_bad">Файл не распознан как копия этого приложения</string>
 
+    <string name="update_title">🔄 Обновление с GitHub</string>
+    <string name="update_desc">При запуске приложение смотрит релиз на GitHub. Если сборка новее, оно скачивает её и открывает установку. Android попросит подтвердить — измерения и таблетки сохраняются. Репозиторий закрытый, поэтому один раз нужен токен GitHub.</string>
+    <string name="update_check">Проверить обновление</string>
+    <string name="update_token_btn">Токен GitHub</string>
+    <string name="update_current">Сейчас установлена версия %1$s</string>
+    <string name="update_checking">Проверяю обновление…</string>
+    <string name="update_uptodate">Установлена последняя версия</string>
+    <string name="update_downloading">Скачиваю версию %1$s… %2$d%%</string>
+    <string name="update_allow_install">Разрешите этому приложению устанавливать обновления. После этого установка продолжится сама.</string>
+    <string name="update_confirm_install">Подтвердите установку. Данные дневника сохранятся.</string>
+    <string name="update_fail_net">Нет связи с GitHub</string>
+    <string name="update_fail_file">Не удалось скачать обновление</string>
+    <string name="update_fail_release">Релиз на GitHub сейчас недоступен. Попробуйте ещё раз.</string>
+    <string name="update_fail_token">Токен не подошёл. Нужен доступ на чтение репозитория.</string>
+    <string name="update_fail_sign">Файл обновления подписан другим ключом и не будет установлен.</string>
+    <string name="update_fail_old">Скачанный файл не новее установленной версии.</string>
+    <string name="update_fail_install">Не удалось открыть установку. Разрешите установку приложений из этого источника.</string>
+    <string name="update_no_version">В релизе нет номера версии.</string>
+    <string name="update_no_asset">В релизе нет файла обновления.</string>
+    <string name="update_busy">Проверка уже идёт</string>
+    <string name="update_token_title">Доступ к GitHub</string>
+    <string name="update_token_msg">Без токена телефон не видит новые версии закрытого репозитория. Нажмите «Создать токен», подтвердите доступ repo и вставьте скопированный текст сюда. Это один раз. Токен никому не отправляйте.</string>
+    <string name="update_token_hint">Вставьте токен</string>
+    <string name="update_token_create">Создать токен</string>
+    <string name="update_token_save">Сохранить</string>
+    <string name="update_later">Позже</string>
+
     <!-- Утро/вечер -->
     <string name="stats_line_me">Утро/вечер (7 дн): %1$d/%2$d • %3$d/%4$d</string>
 
