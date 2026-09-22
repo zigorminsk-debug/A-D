@@ -43,6 +43,13 @@ class MainActivity : AppCompatActivity() {
             .commit()
     }
 
+    /** Старые сборки могли повесить несколько приёмов на один id будильника. */
+    private fun repairAlarms() {
+        val obsolete = Store(this).repairAlarmIds()
+        obsolete?.forEach { ReminderScheduler.cancel(this, it) }
+        ReminderScheduler.rescheduleAll(this)
+    }
+
     private fun askNotificationPermission() {
         if (Build.VERSION.SDK_INT >= 33 &&
             checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
