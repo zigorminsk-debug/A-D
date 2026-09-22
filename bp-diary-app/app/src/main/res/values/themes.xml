@@ -2,10 +2,16 @@
 <resources>
     <style name="Theme.BPDiary" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="colorPrimary">@color/primary</item>
-        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorOnPrimary">@color/onPrimary</item>
         <item name="colorSecondary">@color/secondary</item>
+        <item name="colorOnSecondary">@color/onPrimary</item>
+        <item name="colorSurface">@color/white</item>
+        <item name="colorOnSurface">@color/textDark</item>
         <item name="android:statusBarColor">@color/primary</item>
-        <!-- Фон приложения: чтобы вернуть однотонный, замените @drawable/bg_light на @color/bg -->
-        <item name="android:windowBackground">@drawable/bg_light</item>
+        <item name="android:navigationBarColor">@color/white</item>
+        <!-- Только цвет: фото в windowBackground на части телефонов роняет процесс на старте -->
+        <item name="android:windowBackground">@color/bg</item>
+        <item name="android:forceDarkAllowed">false</item>
+        <item name="android:windowSplashScreenBackground">@color/primary</item>
     </style>
 </resources>

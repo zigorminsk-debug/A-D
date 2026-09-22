@@ -54,21 +54,28 @@ object Notifications {
 
     @SuppressLint("MissingPermission")
     fun show(ctx: Context, id: Int, title: String, text: String) {
-        ensureChannel(ctx)
-        androidx.core.app.NotificationManagerCompat.from(ctx).notify(id, build(ctx, CHANNEL_ID, title, text))
+        try {
+            ensureChannel(ctx)
+            androidx.core.app.NotificationManagerCompat.from(ctx)
+                .notify(id, build(ctx, CHANNEL_ID, title, text))
+        } catch (_: Exception) {
+        }
     }
 
     @SuppressLint("MissingPermission")
     fun showMed(ctx: Context, id: Int, name: String, dose: String) {
-        ensureChannel(ctx)
-        val title = if (dose.isNotBlank()) "$name ($dose)" else name
-        androidx.core.app.NotificationManagerCompat.from(ctx).notify(
-            id,
-            build(
-                ctx, MED_CHANNEL_ID,
-                ctx.getString(R.string.notif_med_title_fmt, title),
-                ctx.getString(R.string.notif_med_text)
+        try {
+            ensureChannel(ctx)
+            val title = if (dose.isNotBlank()) "$name ($dose)" else name
+            androidx.core.app.NotificationManagerCompat.from(ctx).notify(
+                id,
+                build(
+                    ctx, MED_CHANNEL_ID,
+                    ctx.getString(R.string.notif_med_title_fmt, title),
+                    ctx.getString(R.string.notif_med_text)
+                )
             )
-        )
+        } catch (_: Exception) {
+        }
     }
 }

@@ -18,27 +18,31 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        b = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(b.root)
+        try {
+            b = ActivityMainBinding.inflate(layoutInflater)
+            setContentView(b.root)
 
-        askNotificationPermission()
-        repairAlarms()
+            repairAlarms()
 
-        b.bottomNav.listener = BpBottomBar.Listener { itemId ->
-            when (itemId) {
-                R.id.action_diary -> show(DiaryFragment())
-                R.id.action_chart -> show(ChartFragment())
-                R.id.action_meds -> show(MedsFragment())
-                R.id.action_ref -> show(RefFragment())
-                R.id.action_reminders -> show(RemindersFragment())
-                R.id.action_memo -> show(MemoFragment())
+            b.bottomNav.listener = BpBottomBar.Listener { itemId ->
+                when (itemId) {
+                    R.id.action_diary -> show(DiaryFragment())
+                    R.id.action_chart -> show(ChartFragment())
+                    R.id.action_meds -> show(MedsFragment())
+                    R.id.action_ref -> show(RefFragment())
+                    R.id.action_reminders -> show(RemindersFragment())
+                    R.id.action_memo -> show(MemoFragment())
+                }
             }
-        }
-        b.bottomNav.setMenu(R.menu.bottom_nav)
-        val tab = savedInstanceState?.getInt(STATE_TAB, R.id.action_diary) ?: R.id.action_diary
-        b.bottomNav.select(tab, notify = false)
-        if (savedInstanceState == null) {
-            show(DiaryFragment())
+            b.bottomNav.setMenu(R.menu.bottom_nav)
+            val tab = savedInstanceState?.getInt(STATE_TAB, R.id.action_diary) ?: R.id.action_diary
+            b.bottomNav.select(tab, notify = false)
+            if (savedInstanceState == null) {
+                show(DiaryFragment())
+            }
+            window.decorView.post { askNotificationPermission() }
+        } catch (e: Exception) {
+            showStartupError(e)
         }
     }
 
@@ -48,9 +52,24 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun show(f: Fragment) {
-        supportFragmentManager.beginTransaction()
-            .replace(R.id.container, f)
-            .commit()
+        try {
+            supportFragmentManager.beginTransaction()
+                .replace(R.id.container, f)
+                .commitNow()
+        } catch (e: Exception) {
+            showStartupError(e)
+        }
+    }
+
+    private fun showStartupError(e: Exception) {
+        val text = android.widget.TextView(this).apply {
+            setPadding(32, 48, 32, 48)
+            textSize = 14f
+            setTextColor(0xFF1A1A1A.toInt())
+            setBackgroundColor(0xFFFFFFFF.toInt())
+            text = "Не удалось открыть дневник.\n\n${e.javaClass.simpleName}: ${e.message}"
+        }
+        setContentView(text)
     }
 
     /** Старые сборки могли повесить несколько приёмов на один id будильника. */

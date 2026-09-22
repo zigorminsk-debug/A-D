@@ -19,8 +19,11 @@ import java.util.Locale
 class WidgetProvider : AppWidgetProvider() {
 
     override fun onUpdate(context: Context, manager: AppWidgetManager, appWidgetIds: IntArray) {
-        val views = buildViews(context)
-        appWidgetIds.forEach { manager.updateAppWidget(it, views) }
+        try {
+            val views = buildViews(context)
+            appWidgetIds.forEach { manager.updateAppWidget(it, views) }
+        } catch (_: Exception) {
+        }
     }
 
     companion object {

@@ -2,10 +2,15 @@
 <resources>
     <style name="Theme.BPDiary" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="colorPrimary">@color/primary</item>
-        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorOnPrimary">@color/onPrimary</item>
         <item name="colorSecondary">@color/secondary</item>
+        <item name="colorOnSecondary">@color/onPrimary</item>
+        <item name="colorSurface">@color/white</item>
+        <item name="colorOnSurface">@color/textDark</item>
         <item name="android:statusBarColor">#0D1B2A</item>
-        <!-- drawable-night/bg_light.png подхватится автоматически как тёмный фон -->
-        <item name="android:windowBackground">@drawable/bg_light</item>
+        <item name="android:navigationBarColor">@color/white</item>
+        <item name="android:windowBackground">@color/bg</item>
+        <item name="android:forceDarkAllowed">false</item>
+        <item name="android:windowSplashScreenBackground">#0D1B2A</item>
     </style>
 </resources>

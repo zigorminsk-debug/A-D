@@ -37,12 +37,15 @@ class DiaryFragment : Fragment() {
     }
 
     private fun refresh() {
-        val recs = store.records()
-        adapter.submit(recs)
-        b.emptyState.visibility = if (recs.isEmpty()) View.VISIBLE else View.GONE
-        updateStats(recs)
-        // обновить виджет на рабочем столе
-        WidgetProvider.updateAll(requireContext())
+        try {
+            val recs = store.records()
+            adapter.submit(recs)
+            b.emptyState.visibility = if (recs.isEmpty()) View.VISIBLE else View.GONE
+            updateStats(recs)
+            WidgetProvider.updateAll(requireContext())
+        } catch (_: Exception) {
+            b.tvStats.text = getString(R.string.stats_empty)
+        }
     }
 
     private fun updateStats(recs: List<BpRecord>) {
