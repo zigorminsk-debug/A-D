@@ -46,7 +46,10 @@ data class MedLog(
     val medName: String,
     val dose: String,
     val status: String,
-    val time: Long
+    val time: Long,
+    /** Какой приём отметили. −1 — старая отметка без слота, её сопоставляем по времени. */
+    val slotHour: Int = -1,
+    val slotMinute: Int = -1
 )
 
 class Store(context: Context) {
@@ -357,7 +360,9 @@ class Store(context: Context) {
                         medName = o.optString("medName", ""),
                         dose = o.optString("dose", ""),
                         status = o.optString("status", "taken"),
-                        time = o.getLong("time")
+                        time = o.getLong("time"),
+                        slotHour = o.optInt("slotHour", -1),
+                        slotMinute = o.optInt("slotMinute", -1)
                     )
                 )
             } catch (_: Exception) {
@@ -367,10 +372,29 @@ class Store(context: Context) {
         return list
     }
 
-    fun addLog(medId: Int, medName: String, dose: String, status: String) {
+    fun addLog(
+        medId: Int,
+        medName: String,
+        dose: String,
+        status: String,
+        slotHour: Int = -1,
+        slotMinute: Int = -1
+    ) {
         if (readArray("medlogs") == null) return
         val list = logs()
-        list.add(0, MedLog(System.currentTimeMillis(), medId, medName, dose, status, System.currentTimeMillis()))
+        list.add(
+            0,
+            MedLog(
+                System.currentTimeMillis(),
+                medId,
+                medName,
+                dose,
+                status,
+                System.currentTimeMillis(),
+                slotHour,
+                slotMinute
+            )
+        )
         // храним не более 200 последних отметок
         saveLogs(list.take(200))
     }
@@ -383,17 +407,21 @@ class Store(context: Context) {
     private fun saveLogs(list: List<MedLog>) {
         val arr = JSONArray()
         list.forEach { l ->
-            arr.put(
-                JSONObject()
-                    .put("id", l.id)
-                    .put("medId", l.medId)
-                    .put("medName", l.medName)
-                    .put("dose", l.dose)
-                    .put("status", l.status)
-                    .put("time", l.time)
-            )
+            arr.put(logJson(l))
         }
         sp.edit().putString("medlogs", arr.toString()).apply()
+    }
+
+    private fun logJson(l: MedLog): JSONObject {
+        return JSONObject()
+            .put("id", l.id)
+            .put("medId", l.medId)
+            .put("medName", l.medName)
+            .put("dose", l.dose)
+            .put("status", l.status)
+            .put("time", l.time)
+            .put("slotHour", l.slotHour)
+            .put("slotMinute", l.slotMinute)
     }
 
     // ---------- Резервная копия (экспорт / импорт) ----------
@@ -456,17 +484,7 @@ class Store(context: Context) {
         root.put("meds", meds)
 
         val logs = JSONArray()
-        logs().forEach { l ->
-            logs.put(
-                JSONObject()
-                    .put("id", l.id)
-                    .put("medId", l.medId)
-                    .put("medName", l.medName)
-                    .put("dose", l.dose)
-                    .put("status", l.status)
-                    .put("time", l.time)
-            )
-        }
+        logs().forEach { l -> logs.put(logJson(l)) }
         root.put("logs", logs)
         return root.toString(2)
     }
