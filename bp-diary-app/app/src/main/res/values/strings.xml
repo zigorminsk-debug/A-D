@@ -113,10 +113,9 @@
     <string name="export_pdf">Экспорт PDF-отчёта для врача</string>
     <string name="export_pdf_btn">PDF-отчёт</string>
     <string name="pdf_no_data">Нет измерений для отчёта</string>
-    <string name="pdf_subject">Дневник артериального давления — PDF-отчёт</string>
     <string name="pdf_chooser">Отправить PDF-отчёт врачу</string>
     <string name="pdf_patient_title">Данные для отчёта</string>
-    <string name="pdf_patient_msg">ФИО и возраст попадут в PDF для врача. В следующий раз поля уже будут заполнены — их можно поправить.</string>
+    <string name="pdf_patient_msg">ФИО и возраст попадут в PDF для врача. Файл будет называться «%1$s». В следующий раз поля уже будут заполнены — их можно поправить.</string>
     <string name="pdf_patient_name">ФИО</string>
     <string name="pdf_patient_age">Возраст, лет</string>
     <string name="pdf_make">Сформировать PDF</string>

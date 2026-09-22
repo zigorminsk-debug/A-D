@@ -1,9 +1,11 @@
 package com.arena.bpdiary
 
+import android.content.ClipData
 import android.content.Intent
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.FileProvider
+import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.Fragment
 import com.arena.bpdiary.databinding.DialogPatientBinding
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -26,12 +28,20 @@ object PdfShare {
 
         val dialog = MaterialAlertDialogBuilder(ctx)
             .setTitle(R.string.pdf_patient_title)
-            .setMessage(R.string.pdf_patient_msg)
             .setView(form.root)
             .setPositiveButton(R.string.pdf_make, null)
             .setNegativeButton(R.string.cancel, null)
             .create()
         dialog.show()
+        val refreshName = {
+            val typed = form.etName.text?.toString()?.trim().orEmpty()
+            val sample = if (typed.length >= 2) typed else "Иванов Иван Иванович"
+            if (fragment.isAdded) {
+                dialog.setMessage(fragment.getString(R.string.pdf_patient_msg, PdfExporter.reportTitle(sample)))
+            }
+        }
+        form.etName.doAfterTextChanged { refreshName() }
+        refreshName()
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
             val name = form.etName.text?.toString()?.trim().orEmpty()
             val age = form.etAge.text?.toString()?.toIntOrNull()
@@ -48,10 +58,12 @@ object PdfShare {
             store.savePatient(name, age!!)
             val file = PdfExporter.build(ctx, records, periodNote, name, age) ?: return@setOnClickListener
             val uri = FileProvider.getUriForFile(ctx, "${ctx.packageName}.fileprovider", file)
+            val title = file.nameWithoutExtension
             val send = Intent(Intent.ACTION_SEND).apply {
                 type = "application/pdf"
-                putExtra(Intent.EXTRA_SUBJECT, fragment.getString(R.string.pdf_subject))
+                putExtra(Intent.EXTRA_SUBJECT, title)
                 putExtra(Intent.EXTRA_STREAM, uri)
+                clipData = ClipData.newRawUri(title, uri)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
             fragment.startActivity(Intent.createChooser(send, fragment.getString(R.string.pdf_chooser)))

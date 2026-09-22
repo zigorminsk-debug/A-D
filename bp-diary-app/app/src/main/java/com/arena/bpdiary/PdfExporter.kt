@@ -23,6 +23,17 @@ object PdfExporter {
     private const val M = 40f
     private const val BOTTOM = 786f
 
+    /** «Дневник АД Иванов И.И. 22.09.2026» — фамилия, инициалы и дата формирования. */
+    fun reportTitle(patientName: String, formedAt: Date = Date()): String {
+        val date = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(formedAt)
+        var who = surnameAndInitials(patientName).ifBlank { "пациент" }
+        if (who.length > 60) who = who.take(60).trimEnd('.', ' ')
+        return "Дневник АД $who $date"
+    }
+
+    fun reportFileName(patientName: String, formedAt: Date = Date()): String =
+        reportTitle(patientName, formedAt) + ".pdf"
+
     fun build(
         context: Context,
         recordsDesc: List<BpRecord>,
@@ -32,6 +43,7 @@ object PdfExporter {
     ): File? {
         if (recordsDesc.isEmpty()) return null
         val asc = recordsDesc.sortedBy { it.time }
+        val formedAt = Date()
 
         val doc = PdfDocument()
         var pageIndex = 1
@@ -116,7 +128,7 @@ object PdfExporter {
         y += 16f
         val period = if (periodNote.isNullOrBlank()) "все измерения" else periodNote
         c.drawText(
-            "Сформирован: ${dfFull.format(Date())} • $period • приложение «Дневник АД»",
+            "Сформирован: ${dfFull.format(formedAt)} • $period • приложение «Дневник АД»",
             M, y, sub
         )
         y += 12f
@@ -126,7 +138,7 @@ object PdfExporter {
         val patient = Paint(body).apply { typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD) }
         drawWrapped("Пациент: $patientName", patient)
         val ageLine = "Возраст: $patientAge ${yearsWord(patientAge)}"
-        val reportDate = "Дата отчёта: ${SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date())}"
+        val reportDate = "Дата отчёта: ${SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(formedAt)}"
         ensure(16f)
         c.drawText(ageLine, M, y, patient)
         c.drawText(reportDate, PAGE_W - M - patient.measureText(reportDate), y, patient)
@@ -234,11 +246,77 @@ object PdfExporter {
         doc.finishPage(page)
 
         val dir = File(context.cacheDir, "exports").apply { mkdirs() }
-        val ts = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
-        val f = File(dir, "BP_report_$ts.pdf")
+        val stamp = SimpleDateFormat("yyyyMMdd_HHmmss_SSS", Locale.US).format(formedAt)
+        val folder = File(dir, stamp).apply { mkdirs() }
+        val cutoff = formedAt.time - 2L * 24 * 60 * 60 * 1000
+        dir.listFiles()?.forEach { child ->
+            if (child != folder && child.lastModified() < cutoff) child.deleteRecursively()
+        }
+        val f = File(folder, reportFileName(patientName, formedAt))
         FileOutputStream(f).use { doc.writeTo(it) }
         doc.close()
         return f
+    }
+
+    private val RU = Locale("ru")
+
+    /** «Иванов Иван Иванович» и «Иванов И.И.» → «Иванов И.И.». */
+    private fun surnameAndInitials(fullName: String): String {
+        val tokens = fullName
+            .replace('\u00A0', ' ')
+            .replace('/', '-')
+            .replace('\\', ' ')
+            .trim()
+            .split(Regex("\\s+"))
+            .map { it.trim(',', ';', ':', '«', '»', '"') }
+            .filter { it.isNotEmpty() }
+        if (tokens.isEmpty()) return ""
+
+        fun letters(token: String) = token.filter { it.isLetter() }
+
+        fun looksLikeInitials(token: String): Boolean {
+            val l = letters(token)
+            if (l.isEmpty() || l.length > 3) return false
+            if (token.any { !it.isLetter() && it != '.' }) return false
+            if (token.contains('.') || l.length == 1) return true
+            return l.all { it.isUpperCase() }
+        }
+
+        fun capPart(part: String): String {
+            if (part.isEmpty()) return part
+            return part.lowercase(RU).replaceFirstChar { it.titlecase(RU) }
+        }
+
+        fun capSurname(token: String): String {
+            val cleaned = token.filter { it.isLetter() || it == '-' || it == '\'' || it == '’' }
+            val capped = cleaned.split('-').joinToString("-") { capPart(it) }.trim('-')
+            return capped.ifEmpty { capPart(letters(token)) }
+        }
+
+        fun initialsOf(token: String): String {
+            val l = letters(token)
+            if (l.isEmpty()) return ""
+            val chars = if (looksLikeInitials(token)) l else l.take(1).toString()
+            return chars.map { it.titlecase(RU) }.joinToString(".") + "."
+        }
+
+        val surnameFirst = !(looksLikeInitials(tokens.first()) && tokens.size >= 2 && !looksLikeInitials(tokens.last()))
+        val surnameToken = if (surnameFirst) tokens.first() else tokens.last()
+        val nameTokens = if (surnameFirst) tokens.drop(1).take(2) else tokens.dropLast(1)
+        val surname = capSurname(surnameToken)
+        val initials = nameTokens.map { initialsOf(it) }.filter { it.isNotEmpty() }.joinToString("")
+        return sanitizePiece(listOf(surname, initials).filter { it.isNotEmpty() }.joinToString(" "))
+    }
+
+    private fun sanitizePiece(text: String): String {
+        val cleaned = buildString(text.length) {
+            for (ch in text) {
+                val bad = ch == '\\' || ch == '/' || ch == ':' || ch == '*' || ch == '?' ||
+                    ch == '"' || ch == '<' || ch == '>' || ch == '|' || ch.code < 0x20
+                append(if (bad) ' ' else ch)
+            }
+        }
+        return cleaned.replace(Regex("\\s+"), " ").trim()
     }
 
     private fun yearsWord(age: Int): String {
