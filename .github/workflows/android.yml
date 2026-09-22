@@ -27,8 +27,19 @@ jobs:
       - name: Платформа Android 34
         run: |
           set -euo pipefail
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platforms;android-34" "build-tools;34.0.0"
+          mkdir -p "$GITHUB_WORKSPACE/dist"
+          {
+            echo "ANDROID_HOME=${ANDROID_HOME:-}"
+            echo "ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT:-}"
+            command -v sdkmanager || true
+            : "${ANDROID_HOME:?ANDROID_HOME не задан}"
+            yes | sdkmanager --sdk_root="$ANDROID_HOME" --licenses >/dev/null || true
+            sdkmanager --sdk_root="$ANDROID_HOME" "platforms;android-34" "build-tools;34.0.0"
+            test -d "$ANDROID_HOME/platforms/android-34"
+            test -d "$ANDROID_HOME/build-tools/34.0.0"
+            echo PLATFORM_OK
+          } > "$GITHUB_WORKSPACE/dist/sdk.log" 2>&1
+          cat "$GITHUB_WORKSPACE/dist/sdk.log"
 
       - name: Собрать APK постоянным ключом
         working-directory: bp-diary-app
@@ -39,10 +50,68 @@ jobs:
           # Пароли не передаём: пустой Secret затёр бы ключ.
           # Gradle сам берёт keystore/bp-diary.keystore и пароль постоянного ключа.
           unset BP_KEYSTORE_PASSWORD BP_KEY_ALIAS BP_KEY_PASSWORD || true
-          ./gradlew assembleDebug assembleRelease --no-daemon
+          : "${ANDROID_HOME:?ANDROID_HOME не задан}"
+          printf 'sdk.dir=%s\n' "$ANDROID_HOME" > local.properties
+          # Куча из gradle.properties (1G) тесна для AGP 8 на раннере.
+          sed -i 's/-Xmx1024m/-Xmx2048m/; s/-XX:MaxMetaspaceSize=384m/-XX:MaxMetaspaceSize=512m/; s/kotlin.daemon.jvmargs=-Xmx512m/kotlin.daemon.jvmargs=-Xmx1024m/' gradle.properties
           mkdir -p "$GITHUB_WORKSPACE/dist"
+          set +e
+          ./gradlew assembleDebug assembleRelease --no-daemon --stacktrace \
+            > "$GITHUB_WORKSPACE/dist/gradle.log" 2>&1
+          code=$?
+          set -e
+          tail -n 80 "$GITHUB_WORKSPACE/dist/gradle.log"
+          if [ "$code" -ne 0 ]; then
+            exit "$code"
+          fi
           cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/dist/BPDiary-debug.apk"
           cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/dist/BPDiary-release.apk"
+
+      - name: Сохранить лог сборки при ошибке
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          logf=dist/gradle.log
+          if [ ! -f "$logf" ]; then
+            logf=dist/sdk.log
+          fi
+          if [ ! -f "$logf" ]; then
+            echo "::error::лог сборки не создан"
+            exit 0
+          fi
+          cp "$logf" dist/ci-failure.log
+          # Аннотации читаются через API, даже если архив логов Azure недоступен.
+          grep -E 'FAILURE:|What went wrong|Execution failed|error:|e: |Caused by:|SDK location|Failed to find|Could not|A problem' dist/ci-failure.log \
+            | tail -n 30 \
+            | while IFS= read -r line; do
+                echo "::error::${line}"
+              done
+          python3 - << 'PY'
+          import json, os, urllib.request
+          log = open("dist/ci-failure.log", errors="replace").read().splitlines()
+          keys = ("FAILURE:", "What went wrong", "Execution failed", "error:", "e: ", "Caused by:", "SDK location", "Failed to find", "Could not", "A problem")
+          picked = [l for l in log if any(k in l for k in keys)]
+          body = "Gradle CI failure\n\n```\n" + "\n".join((picked[-40:] + ["---"] + log[-80:])) + "\n```"
+          body = body[-60000:]
+          req = urllib.request.Request(
+              f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/commits/{os.environ['GITHUB_SHA']}/comments",
+              data=json.dumps({"body": body}).encode(),
+              headers={
+                  "Authorization": f"Bearer {os.environ['GH_TOKEN']}",
+                  "Accept": "application/vnd.github+json",
+                  "Content-Type": "application/json",
+                  "X-GitHub-Api-Version": "2022-11-28",
+              },
+              method="POST",
+          )
+          try:
+              with urllib.request.urlopen(req) as resp:
+                  print("comment", resp.status)
+          except Exception as exc:
+              print("comment failed", exc)
+          PY
 
       - name: Загрузить артефакт APK
         uses: actions/upload-artifact@v4

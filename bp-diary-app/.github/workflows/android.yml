@@ -29,8 +29,11 @@ jobs:
       - name: Платформа Android 34
         run: |
           set -euo pipefail
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platforms;android-34" "build-tools;34.0.0"
+          : "${ANDROID_HOME:?ANDROID_HOME не задан}"
+          yes | sdkmanager --sdk_root="$ANDROID_HOME" --licenses >/dev/null || true
+          sdkmanager --sdk_root="$ANDROID_HOME" "platforms;android-34" "build-tools;34.0.0"
+          test -d "$ANDROID_HOME/platforms/android-34"
+          test -d "$ANDROID_HOME/build-tools/34.0.0"
 
       - name: Собрать APK постоянным ключом
         run: |
@@ -38,8 +41,18 @@ jobs:
           test -f keystore/bp-diary.keystore
           chmod +x gradlew
           unset BP_KEYSTORE_PASSWORD BP_KEY_ALIAS BP_KEY_PASSWORD || true
-          ./gradlew assembleDebug assembleRelease --no-daemon
+          : "${ANDROID_HOME:?ANDROID_HOME не задан}"
+          printf 'sdk.dir=%s\n' "$ANDROID_HOME" > local.properties
+          sed -i 's/-Xmx1024m/-Xmx2048m/; s/-XX:MaxMetaspaceSize=384m/-XX:MaxMetaspaceSize=512m/; s/kotlin.daemon.jvmargs=-Xmx512m/kotlin.daemon.jvmargs=-Xmx1024m/' gradle.properties
           mkdir -p dist
+          set +e
+          ./gradlew assembleDebug assembleRelease --no-daemon --stacktrace > dist/gradle.log 2>&1
+          code=$?
+          set -e
+          tail -n 80 dist/gradle.log
+          if [ "$code" -ne 0 ]; then
+            exit "$code"
+          fi
           cp app/build/outputs/apk/debug/app-debug.apk dist/BPDiary-debug.apk
           cp app/build/outputs/apk/release/app-release.apk dist/BPDiary-release.apk
 
