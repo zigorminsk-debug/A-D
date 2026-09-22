@@ -45,6 +45,7 @@ class RemindersFragment : Fragment() {
         b.reminders.adapter = adapter
         b.fabAddReminder.setOnClickListener { pickTime() }
         b.btnExactSettings.setOnClickListener { openExactAlarmSettings() }
+        askNotificationPermission()
         refresh()
     }
 
@@ -79,6 +80,18 @@ class RemindersFragment : Fragment() {
             .show()
     }
 
+    private fun askNotificationPermission() {
+        try {
+            if (Build.VERSION.SDK_INT >= 33 &&
+                requireActivity().checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) !=
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+            ) {
+                requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 100)
+            }
+        } catch (_: Exception) {
+        }
+    }
+
     private fun openExactAlarmSettings() {
         val pkg = Uri.parse("package:${requireContext().packageName}")
         val intents = listOf(
@@ -97,6 +110,7 @@ class RemindersFragment : Fragment() {
     }
 
     private fun pickTime() {
+        askNotificationPermission()
         val now = Calendar.getInstance()
         val tp = MaterialTimePicker.Builder()
             .setTimeFormat(TimeFormat.CLOCK_24H)

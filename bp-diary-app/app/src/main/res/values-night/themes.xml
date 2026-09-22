@@ -1,16 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.BPDiary" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="isMaterialTheme">true</item>
         <item name="colorPrimary">@color/primary</item>
         <item name="colorOnPrimary">@color/onPrimary</item>
+        <item name="colorPrimaryVariant">@color/primary</item>
         <item name="colorSecondary">@color/secondary</item>
         <item name="colorOnSecondary">@color/onPrimary</item>
-        <item name="colorSurface">@color/white</item>
+        <item name="colorSecondaryVariant">@color/secondary</item>
+        <item name="colorSurface">@color/bg</item>
         <item name="colorOnSurface">@color/textDark</item>
         <item name="android:statusBarColor">#0D1B2A</item>
-        <item name="android:navigationBarColor">@color/white</item>
+        <item name="android:navigationBarColor">@color/bg</item>
         <item name="android:windowBackground">@color/bg</item>
         <item name="android:forceDarkAllowed">false</item>
-        <item name="android:windowSplashScreenBackground">#0D1B2A</item>
     </style>
 </resources>

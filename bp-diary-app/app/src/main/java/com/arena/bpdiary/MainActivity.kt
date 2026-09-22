@@ -1,8 +1,5 @@
 package com.arena.bpdiary
 
-import android.Manifest
-import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
@@ -40,7 +37,6 @@ class MainActivity : AppCompatActivity() {
             if (savedInstanceState == null) {
                 show(DiaryFragment())
             }
-            window.decorView.post { askNotificationPermission() }
         } catch (e: Exception) {
             showStartupError(e)
         }
@@ -83,11 +79,4 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun askNotificationPermission() {
-        if (Build.VERSION.SDK_INT >= 33 &&
-            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-        ) {
-            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 100)
-        }
-    }
 }

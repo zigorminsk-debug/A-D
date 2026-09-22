@@ -2,9 +2,10 @@ package com.arena.bpdiary
 
 import android.app.Activity
 import android.os.Bundle
+import android.widget.ScrollView
 import android.widget.TextView
 
-/** Простой экран без темы приложения: открывается, даже если основная тема ломает старт. */
+/** Экран без темы приложения: остаётся открытым, даже если дневник упал. */
 class CrashActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -13,8 +14,9 @@ class CrashActivity : Activity() {
             setPadding(48, 48, 48, 48)
             textSize = 14f
             setTextIsSelectable(true)
-            text = intent?.getStringExtra("trace") ?: "unknown"
+            text = "Дневник АД закрылся с ошибкой. Пришлите этот текст:\n\n" +
+                (intent?.getStringExtra("trace") ?: "unknown")
         }
-        setContentView(text)
+        setContentView(ScrollView(this).apply { addView(text) })
     }
 }

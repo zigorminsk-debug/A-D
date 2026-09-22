@@ -44,7 +44,7 @@ object Notifications {
 
     private fun build(ctx: Context, channelId: String, title: String, text: String) =
         NotificationCompat.Builder(ctx, channelId)
-            .setSmallIcon(R.drawable.ic_heart)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
             .setContentText(text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
