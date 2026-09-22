@@ -1,10 +1,21 @@
 package com.arena.bpdiary
 
+import android.content.Context
 import android.content.Intent
+import android.media.AudioManager
+import android.media.ToneGenerator
+import android.os.Build
 import android.os.Bundle
+import android.os.CountDownTimer
+import android.os.Handler
+import android.os.Looper
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
@@ -21,13 +32,22 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
+import kotlin.math.roundToInt
 
 class DiaryFragment : Fragment() {
 
     private var _b: FragmentDiaryBinding? = null
+
+    companion object {
+        private const val PAIR_GAP_MS = 60_000L
+    }
     private val b get() = _b!!
     private val store by lazy { Store(requireContext()) }
     private lateinit var adapter: RecordsAdapter
+    private val pairHandler = Handler(Looper.getMainLooper())
+    private var pairTimer: CountDownTimer? = null
+    private var pairTone: ToneGenerator? = null
+    private var pairDialog: AlertDialog? = null
 
     override fun onCreateView(i: LayoutInflater, c: ViewGroup?, s: Bundle?): View {
         _b = FragmentDiaryBinding.inflate(i, c, false)
@@ -38,7 +58,7 @@ class DiaryFragment : Fragment() {
         adapter = RecordsAdapter(emptyList(), onClick = { openDialog(it) }, onLongClick = { confirmDelete(it) })
         b.records.layoutManager = LinearLayoutManager(requireContext())
         b.records.adapter = adapter
-        b.fabAdd.setOnClickListener { openDialog(null) }
+        b.fabAdd.setOnClickListener { openPairDialog() }
         b.btnExport.setOnClickListener { export() }
         b.btnPdf.setOnClickListener { exportPdf() }
         b.btnAbout.setOnClickListener { (activity as? MainActivity)?.openAbout() }
@@ -205,6 +225,283 @@ class DiaryFragment : Fragment() {
         b.tvStats.text = sb.toString()
     }
 
+    /** Два замера с минутной паузой. В историю пишется среднее, оба числа остаются в заметке. */
+    private fun openPairDialog() {
+        val db = DialogRecordBinding.inflate(layoutInflater)
+        var whenMillis = System.currentTimeMillis()
+        var whenTouched = false
+        val whenFmt = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault())
+        fun showWhen() {
+            db.btnWhen.text = getString(R.string.record_when_fmt, whenFmt.format(Date(whenMillis)))
+        }
+        showWhen()
+        db.btnWhen.setOnClickListener {
+            if (childFragmentManager.findFragmentByTag("record-date") != null) return@setOnClickListener
+            whenTouched = true
+            pickWhen(whenMillis) {
+                whenMillis = it
+                showWhen()
+            }
+        }
+
+        data class Reading(val sys: Int, val dia: Int, val pulse: Int)
+        var first: Reading? = null
+        var phase = 1
+        var waiting = false
+
+        fun field(edit: View, show: Boolean) {
+            val parent = edit.parent as? View
+            val box = parent?.parent as? View
+            val target = if (box is com.google.android.material.textfield.TextInputLayout) box else parent
+            target?.visibility = if (show) View.VISIBLE else View.GONE
+        }
+        fun showNumbers(show: Boolean) {
+            field(db.etSys, show)
+            field(db.etDia, show)
+            field(db.etPulse, show)
+        }
+
+        fun readingOrNull(): Reading? {
+            val sys = db.etSys.text?.toString()?.toIntOrNull()
+            val dia = db.etDia.text?.toString()?.toIntOrNull()
+            val pulse = db.etPulse.text?.toString()?.toIntOrNull() ?: 0
+            var ok = true
+            if (sys == null || sys !in 60..300) {
+                db.etSys.error = getString(R.string.err_range_sys)
+                ok = false
+            } else db.etSys.error = null
+            if (dia == null || dia !in 30..200) {
+                db.etDia.error = getString(R.string.err_range_dia)
+                ok = false
+            } else db.etDia.error = null
+            if (pulse != 0 && pulse !in 25..250) {
+                db.etPulse.error = getString(R.string.err_range_pulse)
+                ok = false
+            } else db.etPulse.error = null
+            if (sys != null && dia != null && sys <= dia) {
+                db.etDia.error = getString(R.string.err_sys_lt_dia)
+                ok = false
+            }
+            if (!ok || sys == null || dia == null) return null
+            return Reading(sys, dia, pulse)
+        }
+
+        fun preview() {
+            val a = first ?: return
+            val sys = db.etSys.text?.toString()?.toIntOrNull()
+            val dia = db.etDia.text?.toString()?.toIntOrNull()
+            db.tvPair.text = if (sys == null || dia == null) {
+                getString(R.string.pair_first_fmt, a.sys, a.dia)
+            } else {
+                getString(R.string.pair_avg_fmt, a.sys, a.dia, mean(a.sys, sys), mean(a.dia, dia))
+            }
+        }
+
+        val d = com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.pair_first_title)
+            .setView(db.root)
+            .setPositiveButton(R.string.pair_next, null)
+            .setNegativeButton(R.string.cancel, null)
+            .setNeutralButton(R.string.pair_single, null)
+            .create()
+        d.setCanceledOnTouchOutside(false)
+
+        fun showSecond() {
+            if (phase == 3 || !d.isShowing) return
+            phase = 3
+            waiting = false
+            pairTimer?.cancel()
+            pairTimer = null
+            d.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            d.setTitle(R.string.pair_second_title)
+            db.tvStep.visibility = View.VISIBLE
+            db.tvStep.text = getString(R.string.pair_step_second)
+            db.tvTimer.visibility = View.GONE
+            db.tvWait.visibility = View.GONE
+            db.tvPair.visibility = View.VISIBLE
+            showNumbers(true)
+            field(db.etNote, true)
+            db.etSys.setText("")
+            db.etDia.setText("")
+            db.etPulse.setText("")
+            db.etSys.error = null
+            db.etDia.error = null
+            db.etPulse.error = null
+            preview()
+            d.getButton(AlertDialog.BUTTON_POSITIVE).text = getString(R.string.pair_save_avg)
+            d.getButton(AlertDialog.BUTTON_NEUTRAL).visibility = View.GONE
+            db.etSys.requestFocus()
+        }
+
+        fun startWait(reading: Reading) {
+            first = reading
+            phase = 2
+            waiting = true
+            d.setTitle(R.string.pair_wait_title)
+            db.tvStep.visibility = View.GONE
+            showNumbers(false)
+            field(db.etNote, false)
+            db.tvPair.visibility = View.GONE
+            db.tvTimer.visibility = View.VISIBLE
+            db.tvWait.visibility = View.VISIBLE
+            db.tvWait.text = getString(R.string.pair_wait)
+            val totalSec = (PAIR_GAP_MS / 1000).toInt()
+            db.tvTimer.text = String.format(Locale.getDefault(), "%d:%02d", totalSec / 60, totalSec % 60)
+            d.getButton(AlertDialog.BUTTON_POSITIVE).text = getString(R.string.pair_skip_wait)
+            d.getButton(AlertDialog.BUTTON_NEUTRAL).visibility = View.GONE
+            d.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            pairTimer?.cancel()
+            pairTimer = object : CountDownTimer(PAIR_GAP_MS, 250) {
+                override fun onTick(ms: Long) {
+                    if (!waiting) return
+                    val sec = ((ms + 999) / 1000).toInt()
+                    db.tvTimer.text = String.format(Locale.getDefault(), "%d:%02d", sec / 60, sec % 60)
+                }
+
+                override fun onFinish() {
+                    if (!waiting) return
+                    waiting = false
+                    playMeasureSignal()
+                    showSecond()
+                }
+            }.start()
+        }
+
+        d.setOnDismissListener {
+            waiting = false
+            stopPairSession()
+            if (pairDialog === d) pairDialog = null
+        }
+        pairDialog = d
+
+        db.tvStep.visibility = View.VISIBLE
+        db.tvStep.text = getString(R.string.pair_step_first)
+        field(db.etNote, true)
+        val watcher = object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) {
+                if (phase == 3) preview()
+            }
+        }
+        db.etSys.addTextChangedListener(watcher)
+        db.etDia.addTextChangedListener(watcher)
+
+        d.show()
+        d.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            when (phase) {
+                1 -> {
+                    val reading = readingOrNull() ?: return@setOnClickListener
+                    startWait(reading)
+                }
+                2 -> showSecond()
+                else -> {
+                    val second = readingOrNull() ?: return@setOnClickListener
+                    val a = first ?: return@setOnClickListener
+                    val time = if (whenTouched) whenMillis else System.currentTimeMillis()
+                    if (timeIsFuture(time)) return@setOnClickListener
+                    val sys = mean(a.sys, second.sys)
+                    val dia = mean(a.dia, second.dia)
+                    val pulse = when {
+                        a.pulse > 0 && second.pulse > 0 -> mean(a.pulse, second.pulse)
+                        a.pulse > 0 -> a.pulse
+                        else -> second.pulse
+                    }
+                    val userNote = db.etNote.text?.toString()?.trim().orEmpty()
+                    val raw = getString(R.string.pair_saved_note, a.sys, a.dia, second.sys, second.dia)
+                    val note = if (userNote.isBlank()) raw else "$userNote · $raw"
+                    store.addRecord(sys, dia, pulse, note, time)
+                    Toast.makeText(requireContext(), getString(R.string.pair_saved_toast, sys, dia), Toast.LENGTH_LONG).show()
+                    refresh()
+                    d.dismiss()
+                }
+            }
+        }
+        d.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+            if (phase != 1) return@setOnClickListener
+            val reading = readingOrNull() ?: return@setOnClickListener
+            val time = if (whenTouched) whenMillis else System.currentTimeMillis()
+            if (timeIsFuture(time)) return@setOnClickListener
+            val note = db.etNote.text?.toString()?.trim().orEmpty()
+            store.addRecord(reading.sys, reading.dia, reading.pulse, note, time)
+            refresh()
+            d.dismiss()
+        }
+    }
+
+    private fun timeIsFuture(whenMillis: Long): Boolean {
+        if (whenMillis > System.currentTimeMillis() + 2L * 60L * 1000L) {
+            Toast.makeText(requireContext(), R.string.err_future, Toast.LENGTH_LONG).show()
+            return true
+        }
+        return false
+    }
+
+    private fun mean(a: Int, b: Int) = ((a + b) / 2.0).roundToInt()
+
+    private fun playMeasureSignal() {
+        val ctx = context?.applicationContext ?: return
+        try {
+            pairTone?.release()
+        } catch (_: Exception) {
+        }
+        val tone = try {
+            ToneGenerator(AudioManager.STREAM_ALARM, 100)
+        } catch (_: Exception) {
+            try {
+                ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100)
+            } catch (_: Exception) {
+                null
+            }
+        }
+        pairTone = tone
+        try {
+            tone?.startTone(ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD, 500)
+            pairHandler.postDelayed({
+                try {
+                    tone?.startTone(ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD, 500)
+                } catch (_: Exception) {
+                }
+            }, 650)
+            pairHandler.postDelayed({
+                try {
+                    tone?.release()
+                } catch (_: Exception) {
+                }
+                if (pairTone === tone) pairTone = null
+            }, 1400)
+        } catch (_: Exception) {
+        }
+        try {
+            val pattern = longArrayOf(0, 350, 180, 350)
+            if (Build.VERSION.SDK_INT >= 31) {
+                ctx.getSystemService(VibratorManager::class.java)
+                    ?.defaultVibrator
+                    ?.vibrate(VibrationEffect.createWaveform(pattern, -1))
+            } else {
+                val vibrator = ctx.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+                if (Build.VERSION.SDK_INT >= 26) {
+                    vibrator?.vibrate(VibrationEffect.createWaveform(pattern, -1))
+                } else {
+                    @Suppress("DEPRECATION")
+                    vibrator?.vibrate(pattern, -1)
+                }
+            }
+        } catch (_: Exception) {
+        }
+    }
+
+    private fun stopPairSession() {
+        pairTimer?.cancel()
+        pairTimer = null
+        pairHandler.removeCallbacksAndMessages(null)
+        try {
+            pairTone?.release()
+        } catch (_: Exception) {
+        }
+        pairTone = null
+    }
+
     private fun openDialog(edit: BpRecord?) {
         val db = DialogRecordBinding.inflate(layoutInflater)
         var whenMillis = edit?.time ?: System.currentTimeMillis()
@@ -351,6 +648,14 @@ class DiaryFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        val dialog = pairDialog
+        pairDialog = null
+        dialog?.setOnDismissListener(null)
+        try {
+            dialog?.dismiss()
+        } catch (_: Exception) {
+        }
+        stopPairSession()
         super.onDestroyView()
         _b = null
     }
