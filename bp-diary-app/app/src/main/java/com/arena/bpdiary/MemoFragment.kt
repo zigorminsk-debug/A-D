@@ -34,6 +34,7 @@ class MemoFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        b.btnAbout.setOnClickListener { (activity as? MainActivity)?.openAbout() }
         b.btnBackup.setOnClickListener { saveBackup.launch("bp-diary-backup.json") }
         b.btnRestore.setOnClickListener { openBackup.launch(arrayOf("*/*")) }
         b.btnUpdate.setOnClickListener {

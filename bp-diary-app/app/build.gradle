@@ -38,8 +38,8 @@ android {
         applicationId "com.arena.bpdiary"
         minSdk 24
         targetSdk 34
-        versionCode 15         // при каждом обновлении увеличивать на 1
-        versionName "1.14"
+        versionCode 16         // при каждом обновлении увеличивать на 1
+        versionName "1.15"
     }
 
     signingConfigs {

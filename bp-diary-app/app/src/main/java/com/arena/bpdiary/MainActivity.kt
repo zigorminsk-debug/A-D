@@ -12,7 +12,10 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val STATE_TAB = "tab"
+        private const val STATE_ABOUT_RETURN = "about_return"
     }
+
+    private var aboutReturnTab = R.id.action_diary
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -22,17 +25,10 @@ class MainActivity : AppCompatActivity() {
 
             repairAlarms()
 
-            b.bottomNav.listener = BpBottomBar.Listener { itemId ->
-                when (itemId) {
-                    R.id.action_diary -> show(DiaryFragment())
-                    R.id.action_chart -> show(ChartFragment())
-                    R.id.action_meds -> show(MedsFragment())
-                    R.id.action_ref -> show(RefFragment())
-                    R.id.action_reminders -> show(RemindersFragment())
-                    R.id.action_memo -> show(MemoFragment())
-                }
-            }
+            b.bottomNav.listener = BpBottomBar.Listener { itemId -> show(fragmentFor(itemId)) }
             b.bottomNav.setMenu(R.menu.bottom_nav)
+            aboutReturnTab = savedInstanceState?.getInt(STATE_ABOUT_RETURN, R.id.action_diary)
+                ?: R.id.action_diary
             val tab = savedInstanceState?.getInt(STATE_TAB, R.id.action_diary) ?: R.id.action_diary
             b.bottomNav.select(tab, notify = false)
             if (savedInstanceState == null) {
@@ -56,6 +52,29 @@ class MainActivity : AppCompatActivity() {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         if (::b.isInitialized) outState.putInt(STATE_TAB, b.bottomNav.selectedId)
+        outState.putInt(STATE_ABOUT_RETURN, aboutReturnTab)
+    }
+
+    fun openAbout() {
+        if (::b.isInitialized) aboutReturnTab = b.bottomNav.selectedId
+        show(AboutFragment())
+    }
+
+    fun closeAbout() {
+        val tab = aboutReturnTab
+        if (::b.isInitialized) b.bottomNav.select(tab, notify = false)
+        show(fragmentFor(tab))
+    }
+
+    private fun fragmentFor(itemId: Int): Fragment {
+        return when (itemId) {
+            R.id.action_chart -> ChartFragment()
+            R.id.action_meds -> MedsFragment()
+            R.id.action_ref -> RefFragment()
+            R.id.action_reminders -> RemindersFragment()
+            R.id.action_memo -> MemoFragment()
+            else -> DiaryFragment()
+        }
     }
 
     private fun show(f: Fragment) {

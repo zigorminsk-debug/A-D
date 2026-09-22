@@ -41,6 +41,10 @@ class DiaryFragment : Fragment() {
         b.fabAdd.setOnClickListener { openDialog(null) }
         b.btnExport.setOnClickListener { export() }
         b.btnPdf.setOnClickListener { exportPdf() }
+        b.btnAbout.setOnClickListener { (activity as? MainActivity)?.openAbout() }
+        b.btnCheckUpdate.setOnClickListener {
+            (activity as? androidx.appcompat.app.AppCompatActivity)?.let { AppUpdater.start(it, manual = true) }
+        }
         refresh()
     }
 

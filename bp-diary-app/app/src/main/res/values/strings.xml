@@ -82,6 +82,13 @@
     <string name="update_token_save">Сохранить</string>
     <string name="update_later">Позже</string>
 
+    <string name="about_title">О программе</string>
+    <string name="about_open">О программе</string>
+    <string name="about_version">Версия %1$s, сборка %2$d</string>
+    <string name="about_body">Дневник измерений, график, таблетки и напоминания, справка и памятка. Записи хранятся только на этом телефоне. Интернет нужен лишь чтобы проверить и скачать обновление.</string>
+    <string name="about_update_note">Если сборка новее, приложение скачает её и откроет установку. Android попросит подтвердить. Измерения и таблетки сохраняются. Для закрытого репозитория один раз нужен токен GitHub.</string>
+    <string name="about_back">Назад</string>
+
     <!-- Утро/вечер -->
     <string name="stats_line_me">Утро/вечер (7 дн): %1$d/%2$d • %3$d/%4$d</string>
 
