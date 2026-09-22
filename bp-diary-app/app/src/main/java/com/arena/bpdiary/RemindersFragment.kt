@@ -58,7 +58,11 @@ class RemindersFragment : Fragment() {
         adapter.submit(list)
         b.emptyState.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
         val am = context?.getSystemService(android.content.Context.ALARM_SERVICE) as? android.app.AlarmManager
-        val exactOk = Build.VERSION.SDK_INT < 31 || am?.canScheduleExactAlarms() == true
+        val exactOk = try {
+            Build.VERSION.SDK_INT < 31 || am?.canScheduleExactAlarms() == true
+        } catch (_: Exception) {
+            false
+        }
         b.cardExact.visibility = if (exactOk) View.GONE else View.VISIBLE
     }
 

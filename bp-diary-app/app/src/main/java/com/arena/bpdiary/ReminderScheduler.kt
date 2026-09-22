@@ -39,11 +39,20 @@ object ReminderScheduler {
             if (before(java.util.Calendar.getInstance())) add(java.util.Calendar.DAY_OF_YEAR, 1)
         }
         val pending = pi(ctx, alarmId, intent)
-        val exact = Build.VERSION.SDK_INT < 31 || am.canScheduleExactAlarms()
-        if (exact) {
-            am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, cal.timeInMillis, pending)
-        } else {
-            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, cal.timeInMillis, pending)
+        try {
+            val exact = Build.VERSION.SDK_INT < 31 || am.canScheduleExactAlarms()
+            if (exact) {
+                am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, cal.timeInMillis, pending)
+            } else {
+                am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, cal.timeInMillis, pending)
+            }
+        } catch (_: SecurityException) {
+            try {
+                am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, cal.timeInMillis, pending)
+            } catch (_: Exception) {
+                // прошивка запретила будильник — приложение должно остаться открытым
+            }
+        } catch (_: Exception) {
         }
     }
 
@@ -59,9 +68,12 @@ object ReminderScheduler {
     }
 
     fun cancel(ctx: Context, alarmId: Int) {
-        val am = ctx.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val intent = Intent(ctx, AlarmReceiver::class.java)
-        am.cancel(pi(ctx, alarmId, intent))
+        try {
+            val am = ctx.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            val intent = Intent(ctx, AlarmReceiver::class.java)
+            am.cancel(pi(ctx, alarmId, intent))
+        } catch (_: Exception) {
+        }
     }
 
     fun rescheduleAllMeasures(ctx: Context) {

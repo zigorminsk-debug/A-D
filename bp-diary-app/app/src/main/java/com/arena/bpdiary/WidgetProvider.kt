@@ -61,12 +61,15 @@ class WidgetProvider : AppWidgetProvider() {
 
         /** Обновить все виджеты (вызывать после изменений дневника). */
         fun updateAll(context: Context) {
-            val manager = AppWidgetManager.getInstance(context)
-            val cn = ComponentName(context, WidgetProvider::class.java)
-            val ids = manager.getAppWidgetIds(cn)
-            if (ids.isNotEmpty()) {
-                val views = buildViews(context)
-                ids.forEach { manager.updateAppWidget(it, views) }
+            try {
+                val manager = AppWidgetManager.getInstance(context)
+                val cn = ComponentName(context, WidgetProvider::class.java)
+                val ids = manager.getAppWidgetIds(cn)
+                if (ids.isNotEmpty()) {
+                    val views = buildViews(context)
+                    ids.forEach { manager.updateAppWidget(it, views) }
+                }
+            } catch (_: Exception) {
             }
         }
     }

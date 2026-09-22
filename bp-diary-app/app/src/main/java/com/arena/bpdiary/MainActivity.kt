@@ -12,6 +12,10 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var b: ActivityMainBinding
 
+    companion object {
+        private const val STATE_TAB = "tab"
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         b = ActivityMainBinding.inflate(layoutInflater)
@@ -20,12 +24,8 @@ class MainActivity : AppCompatActivity() {
         askNotificationPermission()
         repairAlarms()
 
-        if (savedInstanceState == null) {
-            show(DiaryFragment())
-        }
-
-        b.bottomNav.setOnItemSelectedListener { item ->
-            when (item.itemId) {
+        b.bottomNav.listener = BpBottomBar.Listener { itemId ->
+            when (itemId) {
                 R.id.action_diary -> show(DiaryFragment())
                 R.id.action_chart -> show(ChartFragment())
                 R.id.action_meds -> show(MedsFragment())
@@ -33,8 +33,18 @@ class MainActivity : AppCompatActivity() {
                 R.id.action_reminders -> show(RemindersFragment())
                 R.id.action_memo -> show(MemoFragment())
             }
-            true
         }
+        b.bottomNav.setMenu(R.menu.bottom_nav)
+        val tab = savedInstanceState?.getInt(STATE_TAB, R.id.action_diary) ?: R.id.action_diary
+        b.bottomNav.select(tab, notify = false)
+        if (savedInstanceState == null) {
+            show(DiaryFragment())
+        }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        if (::b.isInitialized) outState.putInt(STATE_TAB, b.bottomNav.selectedId)
     }
 
     private fun show(f: Fragment) {
@@ -45,9 +55,13 @@ class MainActivity : AppCompatActivity() {
 
     /** Старые сборки могли повесить несколько приёмов на один id будильника. */
     private fun repairAlarms() {
-        val obsolete = Store(this).repairAlarmIds()
-        obsolete?.forEach { ReminderScheduler.cancel(this, it) }
-        ReminderScheduler.rescheduleAll(this)
+        try {
+            val obsolete = Store(this).repairAlarmIds()
+            obsolete?.forEach { ReminderScheduler.cancel(this, it) }
+            ReminderScheduler.rescheduleAll(this)
+        } catch (_: Exception) {
+            // отказ будильника не должен закрывать дневник на старте
+        }
     }
 
     private fun askNotificationPermission() {
