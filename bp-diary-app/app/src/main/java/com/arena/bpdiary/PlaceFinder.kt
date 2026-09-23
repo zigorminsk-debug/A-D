@@ -46,7 +46,10 @@ object PlaceFinder {
     data class Report(
         val shouldSpeak: Boolean,
         val speech: String,
-        val screen: String
+        val screen: String,
+        /** true — в тексте звонка адрес назначения заменить на ближайшее здание. Запись в памяти не меняется. */
+        val replaceAddress: Boolean = false,
+        val spokenAddress: String = ""
     )
 
     private const val PREFS = "bp_emergency"
@@ -391,7 +394,18 @@ object PlaceFinder {
         val source = sourceLine(ctx, fix)
         val speech = lead + where + coords + source
         val screen = speech + "\n" + rawLine(fix)
-        return Report(shouldSpeak = true, speech = speech, screen = screen)
+        val replace = kind == "differ" || kind == "missing"
+        val spoken = when {
+            building.isNotBlank() -> building
+            else -> rawLine(fix)
+        }
+        return Report(
+            shouldSpeak = true,
+            speech = speech,
+            screen = screen,
+            replaceAddress = replace,
+            spokenAddress = if (replace) spoken else ""
+        )
     }
 
     private fun sourceLine(ctx: Context, fix: Fix): String {

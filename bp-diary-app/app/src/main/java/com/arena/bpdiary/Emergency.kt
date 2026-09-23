@@ -18,7 +18,6 @@ import android.speech.tts.UtteranceProgressListener
 import android.text.Editable
 import android.text.TextWatcher
 import android.widget.Toast
-import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import com.arena.bpdiary.databinding.DialogSosDataBinding
 import com.arena.bpdiary.databinding.DialogStrokeBinding
@@ -105,25 +104,34 @@ object Emergency {
         return sb.toString()
     }
 
-    fun canCallDirectly(ctx: Context): Boolean =
-        ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.CALL_PHONE) ==
-            android.content.pm.PackageManager.PERMISSION_GRANTED
+    /**
+     * Текст звонка, если место не совпало с записью.
+     * Адрес назначения и повтор — ближайшее здание. Записанный адрес называется один раз и не повторяется.
+     */
+    fun scriptReplaced(ctx: Context, spokenAddress: String, placeNote: String): String {
+        val where = spokenAddress.trim().ifBlank { ctx.getString(R.string.sos_script_no_address) }
+        val sb = StringBuilder()
+        sb.append(ctx.getString(R.string.sos_script_lead))
+        val who = patientName(ctx).trim()
+        if (who.isNotBlank()) sb.append(ctx.getString(R.string.sos_script_patient, who))
+        val poly = clinic(ctx).trim()
+        if (poly.isNotBlank()) sb.append(ctx.getString(R.string.sos_script_clinic, poly))
+        sb.append(ctx.getString(R.string.sos_script_address, where))
+        if (placeNote.isNotBlank()) sb.append(placeNote.trim()).append(' ')
+        val saved = address(ctx).trim()
+        if (saved.isNotBlank() && saved != where) {
+            sb.append(ctx.getString(R.string.sos_script_saved_once, saved))
+        }
+        sb.append(ctx.getString(R.string.sos_script_repeat, where))
+        return sb.toString()
+    }
 
-    /** Сразу звонит на 103, если разрешение есть. Иначе открывает набор с уже введённым 103. */
+    /** Всегда звонилка телефона по умолчанию. Приложение само трубку не снимает. */
     fun placeCall(activity: Activity): Boolean {
-        val granted = canCallDirectly(activity)
-        val action = if (granted) Intent.ACTION_CALL else Intent.ACTION_DIAL
-        val intent = Intent(action, Uri.parse("tel:$NUMBER"))
+        val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$NUMBER"))
         return try {
             activity.startActivity(intent)
             true
-        } catch (_: SecurityException) {
-            try {
-                activity.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$NUMBER")))
-                true
-            } catch (_: Exception) {
-                false
-            }
         } catch (_: Exception) {
             false
         }
@@ -301,11 +309,17 @@ object Emergency {
                 }
                 if (report.speech == said) return@describe
                 said = report.speech
+                val text = if (report.replaceAddress && report.spokenAddress.isNotBlank()) {
+                    scriptReplaced(activity, report.spokenAddress, report.speech)
+                } else {
+                    script(activity, report.speech)
+                }
                 if (stroke && speechView != null) {
-                    speechView?.text = script(activity, report.speech)
-                    speak(activity, report.speech, queued = true)
+                    speechView?.text = text
+                    // Сброс очереди: иначе в конце снова звучит записанный адрес.
+                    speak(activity, text, queued = false)
                 } else if (fragment.isAdded) {
-                    showAndSpeak(fragment, report.speech) { }
+                    showAndSpeak(fragment, text) { }
                 }
             }
         }

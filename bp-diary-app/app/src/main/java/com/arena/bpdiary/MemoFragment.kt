@@ -140,16 +140,8 @@ class MemoFragment : Fragment() {
 
     private fun dialAmbulance() {
         val act = activity ?: return
-        val go = {
-            if (!Emergency.placeCall(act)) {
-                Toast.makeText(act, R.string.sos_call_fail, Toast.LENGTH_LONG).show()
-            }
-        }
-        if (Emergency.canCallDirectly(act)) {
-            go()
-        } else {
-            afterCallPermission = go
-            callPermission.launch(android.Manifest.permission.CALL_PHONE)
+        if (!Emergency.placeCall(act)) {
+            Toast.makeText(act, R.string.sos_call_fail, Toast.LENGTH_LONG).show()
         }
     }
 

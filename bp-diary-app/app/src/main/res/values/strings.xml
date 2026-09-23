@@ -268,12 +268,12 @@
     <string name="memo_crisis">1. Сядьте, отдохните 5–10 минут, не паникуйте\n2. Измерьте давление повторно через 5 минут\n3. Если выше 180/120, но без симптомов — примите быстродействующий препарат, согласованный с вашим врачом (часто это каптоприл 12,5–25 мг), и измерьте снова через 30–60 минут\n4. НИКОГДА не кладите под язык нифедипин короткого действия — это опасно\n5. Если за час давление не снизилось — свяжитесь с врачом\n6. Не принимайте двойную дозу своих постоянных таблеток</string>
 
     <string name="sos_title">Скорая 103</string>
-    <string name="sos_hint">Кнопка сразу звонит на 103. При инсульте телефон говорит ФИО, номер поликлиники и адрес. Если GPS, Wi‑Fi или сотовая сеть показывают другое место, называет ближайшее здание и координаты.</string>
+    <string name="sos_hint">«Позвонить 103» открывает обычную звонилку телефона, номер уже набран. Кнопка инсульта или инфаркта говорит ФИО, поликлинику и адрес. Если GPS, Wi‑Fi или сотовая сеть показывают другое место, в звонке называется ближайшее здание и координаты, а не записанный адрес.</string>
     <string name="sos_call">Позвонить 103</string>
     <string name="sos_data_btn">Данные для скорой</string>
     <string name="sos_data_title">Данные для звонка в скорую</string>
     <string name="sos_data_hint">ФИО, поликлиника и адрес сохраняются на этом телефоне. При звонке место сверяется с GPS, Wi‑Fi и сотовой сетью. Если оно другое, телефон скажет ближайшее здание и координаты.</string>
-    <string name="sos_stroke">Инсульт: сказать адрес и позвонить</string>
+    <string name="sos_stroke">Инсульт или инфаркт: сказать адрес и позвонить</string>
     <string name="sos_name">ФИО</string>
     <string name="sos_clinic">Номер поликлиники</string>
     <string name="sos_address">Адрес: город, улица, дом, квартира</string>
@@ -302,18 +302,19 @@
     <string name="sos_listen">Прослушать</string>
     <string name="sos_preview_title">Так телефон скажет:</string>
     <string name="sos_no_voice">Голос телефона не найден. Текст на экране — его можно прочитать вслух.</string>
-    <string name="sos_call_fail">Не удалось открыть звонок. Наберите 103 вручную.</string>
+    <string name="sos_call_fail">Не удалось открыть звонилку. Наберите 103 вручную.</string>
     <string name="sos_need_address">Адрес ещё не записан. Нажмите «Данные для скорой» и сохраните его.</string>
     <string name="sos_speaking">Телефон говорит для скорой</string>
     <string name="sos_again">Сказать ещё раз</string>
     <string name="sos_close">Закрыть</string>
     <string name="sos_script_no_address">адрес не записан в приложении</string>
-    <string name="sos_script_lead">Скорая помощь. Подозрение на инсульт. Человек может не говорить. </string>
+    <string name="sos_script_lead">Подразделение на инсульт или инфаркт. Больной не может говорить. </string>
     <string name="sos_script_patient">Пациент: %1$s. </string>
     <string name="sos_script_clinic">Поликлиника: %1$s. </string>
     <string name="sos_script_address">Адрес: %1$s. </string>
     <string name="sos_script_extra">Дополнительно: %1$s. </string>
     <string name="sos_script_repeat">Повторяю адрес: %1$s.</string>
+    <string name="sos_script_saved_once">Записанный адрес, не текущее место: %1$s. </string>
     <string name="sos_script_no_fix">Место по GPS, Wi‑Fi и сотовой сети определить не удалось.</string>
     <string name="memo_red_title">🚨 Вызывайте скорую, если есть:</string>
     <string name="memo_red">• Боль или давление в груди, одышка\n• Нарушение речи, асимметрия лица, слабость в руке или ноге\n• Резкая «самая сильная» головная боль, рвота\n• Внезапное нарушение зрения, онемение\n• Потеря сознания или судороги\n• АД выше 180/120 вместе с любым из этих симптомов</string>
