@@ -15,6 +15,26 @@
             android:paddingBottom="96dp">
 
             <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:lineSpacingExtra="2dp"
+                android:paddingHorizontal="16dp"
+                android:paddingTop="12dp"
+                android:text="@string/med_signal_hint"
+                android:textColor="@color/textDark"
+                android:textSize="14sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnTestSignal"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginTop="8dp"
+                android:text="@string/med_signal_test"
+                android:textSize="14sp" />
+
+            <TextView
                 android:id="@+id/emptyMeds"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

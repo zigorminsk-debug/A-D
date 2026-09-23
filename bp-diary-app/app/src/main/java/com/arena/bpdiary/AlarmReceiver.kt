@@ -3,11 +3,15 @@ package com.arena.bpdiary
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.os.Handler
+import android.os.Looper
 
 class AlarmReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent?) {
         if (intent == null) return
+        val pending = goAsync()
+        var hold = false
         try {
             val id = intent.getIntExtra("id", 0)
             val hour = intent.getIntExtra("hour", 8)
@@ -19,6 +23,8 @@ class AlarmReceiver : BroadcastReceiver() {
                     val name = intent.getStringExtra("name") ?: ""
                     val dose = intent.getStringExtra("dose") ?: ""
                     Notifications.showMed(context, id, name, dose)
+                    Notifications.playMedSignal(context)
+                    hold = true
                     ReminderScheduler.scheduleMedSlot(context, id, hour, minute, name, dose)
                 }
                 else -> {
@@ -33,6 +39,11 @@ class AlarmReceiver : BroadcastReceiver() {
             }
         } catch (_: Exception) {
             // нет разрешения на уведомления или сбой прошивки — не закрываем приложение
+        }
+        if (hold) {
+            Handler(Looper.getMainLooper()).postDelayed({ pending.finish() }, 2200)
+        } else {
+            pending.finish()
         }
     }
 }

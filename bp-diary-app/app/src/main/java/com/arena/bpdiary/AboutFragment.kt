@@ -1,10 +1,14 @@
 package com.arena.bpdiary
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.fragment.app.Fragment
 import com.arena.bpdiary.databinding.FragmentAboutBinding
@@ -29,6 +33,12 @@ class AboutFragment : Fragment() {
             }
         )
         b.btnBack.setOnClickListener { (activity as? MainActivity)?.closeAbout() }
+        b.btnDevCall.setOnClickListener {
+            openExternal(Intent(Intent.ACTION_DIAL, Uri.parse("tel:+375293371412")), R.string.about_dev_call_fail)
+        }
+        b.btnDevMail.setOnClickListener {
+            openExternal(Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:ziv@csl.by")), R.string.about_dev_mail_fail)
+        }
         b.btnUpdate.setOnClickListener {
             (activity as? androidx.appcompat.app.AppCompatActivity)?.let { AppUpdater.start(it, manual = true) }
         }
@@ -43,6 +53,16 @@ class AboutFragment : Fragment() {
             }
             b.tvVersion.text = getString(R.string.about_version, p.versionName ?: "", code)
         } catch (_: Exception) {
+        }
+    }
+
+    private fun openExternal(intent: Intent, fail: Int) {
+        try {
+            startActivity(intent)
+        } catch (_: ActivityNotFoundException) {
+            Toast.makeText(requireContext(), fail, Toast.LENGTH_LONG).show()
+        } catch (_: Exception) {
+            Toast.makeText(requireContext(), fail, Toast.LENGTH_LONG).show()
         }
     }
 

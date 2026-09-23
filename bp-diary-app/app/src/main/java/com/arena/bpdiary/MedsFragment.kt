@@ -63,7 +63,27 @@ class MedsFragment : Fragment() {
         b.logsList.isNestedScrollingEnabled = false
 
         b.fabAddMed.setOnClickListener { showMedDialog(null) }
+        b.btnTestSignal.setOnClickListener {
+            askNotificationPermission()
+            val silent = Notifications.playMedSignal(requireContext())
+            if (silent) {
+                Toast.makeText(requireContext(), R.string.med_signal_silent, Toast.LENGTH_LONG).show()
+            }
+        }
+        askNotificationPermission()
         refresh()
+    }
+
+    private fun askNotificationPermission() {
+        try {
+            if (Build.VERSION.SDK_INT >= 33 &&
+                requireActivity().checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) !=
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+            ) {
+                requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 101)
+            }
+        } catch (_: Exception) {
+        }
     }
 
     override fun onResume() {

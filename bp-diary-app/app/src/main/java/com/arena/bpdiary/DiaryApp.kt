@@ -18,23 +18,8 @@ class DiaryApp : Application() {
     override fun onCreate() {
         super.onCreate()
         try {
+            Notifications.ensureChannel(this)
             val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            if (Build.VERSION.SDK_INT >= 26) {
-                nm.createNotificationChannel(
-                    android.app.NotificationChannel(
-                        Notifications.CHANNEL_ID,
-                        getString(R.string.channel_name),
-                        NotificationManager.IMPORTANCE_HIGH
-                    )
-                )
-                nm.createNotificationChannel(
-                    android.app.NotificationChannel(
-                        Notifications.MED_CHANNEL_ID,
-                        getString(R.string.med_channel_name),
-                        NotificationManager.IMPORTANCE_HIGH
-                    )
-                )
-            }
             nm.cancelAll()
         } catch (_: Exception) {
         }
