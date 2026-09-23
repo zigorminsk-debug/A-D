@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fontFamily="sans-serif-medium"
+        android:text="@string/sos_speaking"
+        android:textColor="@color/catCrisis"
+        android:textSize="18sp" />
+
+    <TextView
+        android:id="@+id/tvStrokeSpeech"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:lineSpacingExtra="3dp"
+        android:textColor="@color/textDark"
+        android:textSize="20sp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnStrokeAgain"
+        style="@style/Widget.BPDiary.Button.Outlined"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="@string/sos_again"
+        android:textColor="@color/catCrisis"
+        android:textSize="16sp"
+        app:strokeColor="@color/catCrisis" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnStrokeCall"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/sos_call"
+        android:textColor="@color/onPrimary"
+        android:textSize="18sp"
+        app:backgroundTint="@color/catCrisis" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnStrokeClose"
+        style="@style/Widget.BPDiary.Button.Text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/sos_close"
+        android:textSize="15sp" />
+</LinearLayout>

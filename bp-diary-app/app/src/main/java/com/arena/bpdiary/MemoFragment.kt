@@ -2,6 +2,8 @@ package com.arena.bpdiary
 
 import android.net.Uri
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -28,12 +30,42 @@ class MemoFragment : Fragment() {
             if (uri != null) askRestore(uri)
         }
 
+    private var afterCallPermission: (() -> Unit)? = null
+    private val callPermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+            val next = afterCallPermission
+            afterCallPermission = null
+            next?.invoke()
+        }
+
     override fun onCreateView(i: LayoutInflater, c: ViewGroup?, s: Bundle?): View {
         _b = FragmentMemoBinding.inflate(i, c, false)
         return _b!!.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        b.etSosAddress.setText(Emergency.address(requireContext()))
+        b.etSosExtra.setText(Emergency.extra(requireContext()))
+        refreshSosPreview()
+        val watch = object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) { refreshSosPreview() }
+        }
+        b.etSosAddress.addTextChangedListener(watch)
+        b.etSosExtra.addTextChangedListener(watch)
+        b.btnSosSave.setOnClickListener {
+            persistSos()
+            Toast.makeText(requireContext(), R.string.sos_saved, Toast.LENGTH_LONG).show()
+        }
+        b.btnSosListen.setOnClickListener {
+            persistSos()
+            Emergency.showAndSpeak(this, Emergency.script(requireContext())) { callAmbulance() }
+        }
+        b.btnSosCall.setOnClickListener { callAmbulance() }
+        b.btnSosStroke.setOnClickListener { speakStrokeAndCall() }
+        b.btnRedCall.setOnClickListener { callAmbulance() }
+        b.btnRedStroke.setOnClickListener { speakStrokeAndCall() }
         b.btnAbout.setOnClickListener { (activity as? MainActivity)?.openAbout() }
         b.btnBackup.setOnClickListener { saveBackup.launch("bp-diary-backup.json") }
         b.btnRestore.setOnClickListener { openBackup.launch(arrayOf("*/*")) }
@@ -48,6 +80,49 @@ class MemoFragment : Fragment() {
             b.txtUpdateNow.text = getString(R.string.update_current, p.versionName ?: "")
         } catch (_: Exception) {
         }
+    }
+
+    private fun persistSos() {
+        Emergency.save(
+            requireContext(),
+            b.etSosAddress.text?.toString().orEmpty(),
+            b.etSosExtra.text?.toString().orEmpty()
+        )
+        refreshSosPreview()
+    }
+
+    private fun refreshSosPreview() {
+        if (_b == null) return
+        Emergency.save(
+            requireContext(),
+            b.etSosAddress.text?.toString().orEmpty(),
+            b.etSosExtra.text?.toString().orEmpty()
+        )
+        b.tvSosPreview.text = Emergency.script(requireContext())
+    }
+
+    private fun callAmbulance() {
+        val act = activity ?: return
+        val go = {
+            if (!Emergency.placeCall(act)) {
+                Toast.makeText(act, R.string.sos_call_fail, Toast.LENGTH_LONG).show()
+            }
+        }
+        if (Emergency.canCallDirectly(act)) {
+            go()
+        } else {
+            afterCallPermission = go
+            callPermission.launch(android.Manifest.permission.CALL_PHONE)
+        }
+    }
+
+    private fun speakStrokeAndCall() {
+        persistSos()
+        if (!Emergency.hasAddress(requireContext())) {
+            Toast.makeText(requireContext(), R.string.sos_need_address, Toast.LENGTH_LONG).show()
+        }
+        Emergency.showAndSpeak(this, Emergency.script(requireContext())) { callAmbulance() }
+        callAmbulance()
     }
 
     private fun writeBackup(uri: Uri) {

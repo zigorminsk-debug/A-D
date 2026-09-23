@@ -20,6 +20,7 @@ import android.view.ViewGroup
 import android.view.WindowManager
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
@@ -51,6 +52,13 @@ class DiaryFragment : Fragment() {
     private var pairTimer: CountDownTimer? = null
     private var pairTone: ToneGenerator? = null
     private var pairDialog: AlertDialog? = null
+    private var afterCallPermission: (() -> Unit)? = null
+    private val callPermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+            val next = afterCallPermission
+            afterCallPermission = null
+            next?.invoke()
+        }
 
     override fun onCreateView(i: LayoutInflater, c: ViewGroup?, s: Bundle?): View {
         _b = FragmentDiaryBinding.inflate(i, c, false)
@@ -62,6 +70,8 @@ class DiaryFragment : Fragment() {
         b.records.layoutManager = LinearLayoutManager(requireContext())
         b.records.adapter = adapter
         b.fabAdd.setOnClickListener { openPairDialog() }
+        b.btnCall103.setOnClickListener { callAmbulance() }
+        b.btnStroke.setOnClickListener { speakStrokeAndCall() }
         b.btnExport.setOnClickListener { export() }
         b.btnPdf.setOnClickListener { exportPdf() }
         b.btnAbout.setOnClickListener { (activity as? MainActivity)?.openAbout() }
@@ -74,6 +84,29 @@ class DiaryFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         if (_b != null) refresh()
+    }
+
+    private fun callAmbulance() {
+        val act = activity ?: return
+        val go = {
+            if (!Emergency.placeCall(act)) {
+                Toast.makeText(act, R.string.sos_call_fail, Toast.LENGTH_LONG).show()
+            }
+        }
+        if (Emergency.canCallDirectly(act)) {
+            go()
+        } else {
+            afterCallPermission = go
+            callPermission.launch(android.Manifest.permission.CALL_PHONE)
+        }
+    }
+
+    private fun speakStrokeAndCall() {
+        if (!Emergency.hasAddress(requireContext())) {
+            Toast.makeText(requireContext(), R.string.sos_need_address, Toast.LENGTH_LONG).show()
+        }
+        Emergency.showAndSpeak(this, Emergency.script(requireContext())) { callAmbulance() }
+        callAmbulance()
     }
 
     private fun refresh() {
