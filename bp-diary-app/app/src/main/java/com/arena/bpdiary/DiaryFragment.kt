@@ -44,6 +44,7 @@ class DiaryFragment : Fragment() {
 
     companion object {
         private const val PAIR_GAP_MS = 60_000L
+        private const val REST_MS = 5L * 60L * 1000L
     }
     private val b get() = _b!!
     private val store by lazy { Store(requireContext()) }
@@ -72,6 +73,7 @@ class DiaryFragment : Fragment() {
         b.fabAdd.setOnClickListener { openPairDialog() }
         b.btnCall103.setOnClickListener { callAmbulance() }
         b.btnStroke.setOnClickListener { speakStrokeAndCall() }
+        b.btnSosData.setOnClickListener { Emergency.showDataDialog(this) }
         b.btnExport.setOnClickListener { export() }
         b.btnPdf.setOnClickListener { exportPdf() }
         b.btnAbout.setOnClickListener { (activity as? MainActivity)?.openAbout() }
@@ -305,7 +307,7 @@ class DiaryFragment : Fragment() {
 
         data class Reading(val sys: Int, val dia: Int, val pulse: Int)
         var first: Reading? = null
-        var phase = 1
+        var phase = 0
         var waiting = false
 
         fun field(edit: View, show: Boolean) {
@@ -357,7 +359,7 @@ class DiaryFragment : Fragment() {
         }
 
         val d = com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.pair_first_title)
+            .setTitle(R.string.pair_rest_title)
             .setView(db.root)
             .create()
         d.setCanceledOnTouchOutside(false)
@@ -448,6 +450,67 @@ class DiaryFragment : Fragment() {
                 .show()
         }
 
+        fun clock(sec: Int) = String.format(Locale.getDefault(), "%d:%02d", sec / 60, sec % 60)
+
+        fun showFirst() {
+            phase = 1
+            waiting = false
+            pairTimer?.cancel()
+            pairTimer = null
+            d.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            d.setTitle(R.string.pair_first_title)
+            db.btnWhen.visibility = View.VISIBLE
+            db.tvStep.visibility = View.VISIBLE
+            db.tvStep.text = getString(R.string.pair_step_first)
+            db.tvTimer.visibility = View.GONE
+            db.tvWait.visibility = View.GONE
+            db.tvPair.visibility = View.GONE
+            showNumbers(true)
+            field(db.etNote, true)
+            showActions()
+            capForm(db.formScroll)
+            db.etSys.requestFocus()
+        }
+
+        fun startRest() {
+            phase = 0
+            waiting = true
+            hideKeyboard()
+            d.setTitle(R.string.pair_rest_title)
+            db.btnWhen.visibility = View.GONE
+            db.tvStep.visibility = View.GONE
+            db.tvWarn.visibility = View.GONE
+            db.tvPair.visibility = View.GONE
+            showNumbers(false)
+            field(db.etNote, false)
+            db.tvTimer.visibility = View.VISIBLE
+            db.tvWait.visibility = View.VISIBLE
+            db.tvWait.text = getString(R.string.pair_rest)
+            val totalSec = (REST_MS / 1000).toInt()
+            db.tvTimer.text = clock(totalSec)
+            db.btnPrimary.text = getString(R.string.pair_skip_rest)
+            paintPrimary(2)
+            db.btnSingle.visibility = View.GONE
+            db.pairActions.visibility = View.VISIBLE
+            capForm(db.formScroll)
+            d.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            pairTimer?.cancel()
+            pairTimer = object : CountDownTimer(REST_MS, 250) {
+                override fun onTick(ms: Long) {
+                    if (!waiting || phase != 0) return
+                    val sec = ((ms + 999) / 1000).toInt()
+                    db.tvTimer.text = clock(sec)
+                }
+
+                override fun onFinish() {
+                    if (!waiting || phase != 0) return
+                    waiting = false
+                    playMeasureSignal()
+                    showFirst()
+                }
+            }.start()
+        }
+
         fun showSecond() {
             if (phase == 3 || !d.isShowing) return
             phase = 3
@@ -489,7 +552,7 @@ class DiaryFragment : Fragment() {
             db.tvWait.visibility = View.VISIBLE
             db.tvWait.text = getString(R.string.pair_wait)
             val totalSec = (PAIR_GAP_MS / 1000).toInt()
-            db.tvTimer.text = String.format(Locale.getDefault(), "%d:%02d", totalSec / 60, totalSec % 60)
+            db.tvTimer.text = clock(totalSec)
             showActions()
             capForm(db.formScroll)
             d.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -498,7 +561,7 @@ class DiaryFragment : Fragment() {
                 override fun onTick(ms: Long) {
                     if (!waiting) return
                     val sec = ((ms + 999) / 1000).toInt()
-                    db.tvTimer.text = String.format(Locale.getDefault(), "%d:%02d", sec / 60, sec % 60)
+                    db.tvTimer.text = clock(sec)
                 }
 
                 override fun onFinish() {
@@ -531,14 +594,8 @@ class DiaryFragment : Fragment() {
                 false
             }
         }
-        d.setOnShowListener { capForm(db.formScroll) }
+        d.setOnShowListener { startRest() }
         pairDialog = d
-
-        db.tvStep.visibility = View.VISIBLE
-        db.tvStep.text = getString(R.string.pair_step_first)
-        db.tvWarn.visibility = View.VISIBLE
-        field(db.etNote, true)
-        showActions()
         val watcher = object : android.text.TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
@@ -551,12 +608,13 @@ class DiaryFragment : Fragment() {
 
         db.btnPrimary.setOnClickListener {
             when (phase) {
+                0 -> showFirst()
                 1 -> {
                     val reading = readingOrNull() ?: return@setOnClickListener
                     startWait(reading)
                 }
                 2 -> showSecond()
-                else -> {
+                3 -> {
                     val second = readingOrNull() ?: return@setOnClickListener
                     val a = first ?: return@setOnClickListener
                     val time = if (whenTouched) whenMillis else System.currentTimeMillis()

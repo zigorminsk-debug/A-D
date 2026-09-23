@@ -64,6 +64,9 @@ class MemoFragment : Fragment() {
         }
         b.btnSosCall.setOnClickListener { callAmbulance() }
         b.btnSosStroke.setOnClickListener { speakStrokeAndCall() }
+        b.btnSosData.setOnClickListener {
+            Emergency.showDataDialog(this) { reloadSos() }
+        }
         b.btnRedCall.setOnClickListener { callAmbulance() }
         b.btnRedStroke.setOnClickListener { speakStrokeAndCall() }
         b.btnAbout.setOnClickListener { (activity as? MainActivity)?.openAbout() }
@@ -80,6 +83,13 @@ class MemoFragment : Fragment() {
             b.txtUpdateNow.text = getString(R.string.update_current, p.versionName ?: "")
         } catch (_: Exception) {
         }
+    }
+
+    private fun reloadSos() {
+        if (_b == null) return
+        b.etSosAddress.setText(Emergency.address(requireContext()))
+        b.etSosExtra.setText(Emergency.extra(requireContext()))
+        b.tvSosPreview.text = Emergency.script(requireContext())
     }
 
     private fun persistSos() {

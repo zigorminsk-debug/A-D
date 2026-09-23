@@ -14,9 +14,12 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
+import android.text.Editable
+import android.text.TextWatcher
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import com.arena.bpdiary.databinding.DialogSosDataBinding
 import com.arena.bpdiary.databinding.DialogStrokeBinding
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.util.Locale
@@ -158,6 +161,45 @@ object Emergency {
         }
         engine = null
         ready = false
+    }
+
+    /** Окно, куда заранее вписывают адрес и приметы для звонка в скорую. */
+    fun showDataDialog(fragment: Fragment, onClosed: (() -> Unit)? = null) {
+        val activity = fragment.activity ?: return
+        val binding = DialogSosDataBinding.inflate(fragment.layoutInflater)
+        binding.etSosAddress.setText(address(activity))
+        binding.etSosExtra.setText(extra(activity))
+        fun preview() {
+            val where = binding.etSosAddress.text?.toString()?.trim().orEmpty()
+                .ifBlank { activity.getString(R.string.sos_script_no_address) }
+            val more = binding.etSosExtra.text?.toString()?.trim().orEmpty()
+                .let { if (it.isBlank()) "" else activity.getString(R.string.sos_script_extra, it) }
+            binding.tvSosPreview.text = activity.getString(R.string.sos_script, where, more)
+        }
+        preview()
+        val watch = object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) { preview() }
+        }
+        binding.etSosAddress.addTextChangedListener(watch)
+        binding.etSosExtra.addTextChangedListener(watch)
+        val dialog = MaterialAlertDialogBuilder(activity)
+            .setView(binding.root)
+            .setCancelable(true)
+            .create()
+        binding.btnSosSave.setOnClickListener {
+            save(
+                activity,
+                binding.etSosAddress.text?.toString().orEmpty(),
+                binding.etSosExtra.text?.toString().orEmpty()
+            )
+            toast(activity, R.string.sos_saved)
+            dialog.dismiss()
+        }
+        binding.btnSosClose.setOnClickListener { dialog.dismiss() }
+        dialog.setOnDismissListener { onClosed?.invoke() }
+        dialog.show()
     }
 
     fun showAndSpeak(fragment: Fragment, text: String, onCall: () -> Unit) {
