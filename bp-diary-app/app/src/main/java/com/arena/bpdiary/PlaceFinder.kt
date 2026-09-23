@@ -420,7 +420,7 @@ object PlaceFinder {
         val s = norm(saved)
         val b = norm(building)
         if (s.isBlank() || b.isBlank()) return false
-        val house = Regex("(?<!\d)\d{1,4}[а-яa-z]?").find(s)?.value
+        val house = Regex("""(?<!\d)\d{1,4}[а-яa-z]?""").find(s)?.value
         val tokens = s.split(" ").filter { it.length >= 5 && it.any(Char::isLetter) }
         if (tokens.isEmpty()) return false
         val streetHit = tokens.any { b.contains(it) }
@@ -432,7 +432,7 @@ object PlaceFinder {
         value.lowercase(Locale("ru"))
             .replace('ё', 'е')
             .replace(Regex("[^a-zа-я0-9]"), " ")
-            .replace(Regex("\s+"), " ")
+            .replace(Regex("""\s+"""), " ")
             .trim()
 
     private fun score(address: Address): Int {
