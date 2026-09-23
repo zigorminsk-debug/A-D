@@ -16,4 +16,9 @@
     <color name="catG2">#D84315</color>
     <color name="catG3">#C62828</color>
     <color name="catCrisis">#8E0000</color>
+
+    <color name="warnBg">#FDECEA</color>
+    <color name="warnText">#C62828</color>
+    <color name="okBg">#E8F5E9</color>
+    <color name="okText">#2E7D32</color>
 </resources>

@@ -7,4 +7,8 @@
     <color name="gray">#97A3B0</color>
     <color name="primary">#4A90D9</color>        <!-- акцент ярче -->
     <color name="secondary">#6FA8DC</color>
+    <color name="warnBg">#3F2A2A</color>
+    <color name="warnText">#FFAB91</color>
+    <color name="okBg">#1E3324</color>
+    <color name="okText">#A5D6A7</color>
 </resources>

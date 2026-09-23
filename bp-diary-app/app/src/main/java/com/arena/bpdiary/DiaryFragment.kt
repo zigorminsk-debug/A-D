@@ -2,6 +2,7 @@ package com.arena.bpdiary
 
 import android.content.Context
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Build
@@ -12,10 +13,12 @@ import android.os.Looper
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
@@ -122,6 +125,23 @@ class DiaryFragment : Fragment() {
             capTodayCard()
         } catch (_: Exception) {
             b.cardToday.visibility = View.GONE
+        }
+    }
+
+    /** Поля прокручиваются, кнопки «Дальше» и «Сохранить среднее» остаются на экране. */
+    private fun capForm(scroll: View) {
+        val max = (resources.displayMetrics.heightPixels * 0.46f).toInt()
+        val lp = scroll.layoutParams
+        lp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+        scroll.layoutParams = lp
+        scroll.post {
+            if (!isAdded) return@post
+            val content = (scroll as? ViewGroup)?.getChildAt(0)?.measuredHeight ?: return@post
+            val target = content.coerceAtMost(max)
+            if (target > 0 && scroll.layoutParams.height != target) {
+                scroll.layoutParams.height = target
+                scroll.requestLayout()
+            }
         }
     }
 
@@ -300,11 +320,94 @@ class DiaryFragment : Fragment() {
         val d = com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.pair_first_title)
             .setView(db.root)
-            .setPositiveButton(R.string.pair_next, null)
-            .setNegativeButton(R.string.cancel, null)
-            .setNeutralButton(R.string.pair_single, null)
             .create()
         d.setCanceledOnTouchOutside(false)
+        d.setCancelable(false)
+        var leaveAsk: AlertDialog? = null
+        var singleAsk: AlertDialog? = null
+
+        fun hideKeyboard() {
+            val imm = context?.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+            imm?.hideSoftInputFromWindow(db.root.windowToken, 0)
+        }
+
+        /** 0 — синяя «Дальше», 1 — зелёная «Сохранить среднее», 2 — контур «Пропустить». */
+        fun paintPrimary(mode: Int) {
+            val bg = when (mode) {
+                1 -> ContextCompat.getColor(requireContext(), R.color.catOptimal)
+                2 -> ContextCompat.getColor(requireContext(), R.color.white)
+                else -> ContextCompat.getColor(requireContext(), R.color.primary)
+            }
+            val fg = if (mode == 2) {
+                ContextCompat.getColor(requireContext(), R.color.primary)
+            } else {
+                ContextCompat.getColor(requireContext(), R.color.onPrimary)
+            }
+            db.btnPrimary.backgroundTintList = ColorStateList.valueOf(bg)
+            db.btnPrimary.setTextColor(fg)
+            val stroke = if (mode == 2) (resources.displayMetrics.density).toInt().coerceAtLeast(1) else 0
+            db.btnPrimary.strokeWidth = stroke
+            db.btnPrimary.strokeColor = ColorStateList.valueOf(
+                ContextCompat.getColor(requireContext(), R.color.primary)
+            )
+        }
+
+        fun showActions() {
+            db.pairActions.visibility = View.VISIBLE
+            when (phase) {
+                1 -> {
+                    db.btnPrimary.text = getString(R.string.pair_next)
+                    paintPrimary(0)
+                    db.btnSingle.visibility = View.VISIBLE
+                    db.tvWarn.visibility = View.VISIBLE
+                }
+                2 -> {
+                    db.btnPrimary.text = getString(R.string.pair_skip_wait)
+                    paintPrimary(2)
+                    db.btnSingle.visibility = View.GONE
+                    db.tvWarn.visibility = View.GONE
+                }
+                else -> {
+                    db.btnPrimary.text = getString(R.string.pair_save_avg)
+                    paintPrimary(1)
+                    db.btnSingle.visibility = View.GONE
+                    db.tvWarn.visibility = View.GONE
+                }
+            }
+        }
+
+        fun saveSingle(reading: Reading) {
+            val time = if (whenTouched) whenMillis else System.currentTimeMillis()
+            if (timeIsFuture(time)) return
+            val note = db.etNote.text?.toString()?.trim().orEmpty()
+            store.addRecord(reading.sys, reading.dia, reading.pulse, note, time)
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.pair_single_toast, reading.sys, reading.dia),
+                Toast.LENGTH_LONG
+            ).show()
+            refresh()
+            d.dismiss()
+        }
+
+        fun tryLeave() {
+            if (!d.isShowing) return
+            if (singleAsk?.isShowing == true) {
+                singleAsk?.dismiss()
+                return
+            }
+            if (phase == 1 || first == null) {
+                d.dismiss()
+                return
+            }
+            if (leaveAsk?.isShowing == true) return
+            leaveAsk = com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.pair_leave_title)
+                .setMessage(R.string.pair_leave_msg)
+                .setPositiveButton(R.string.pair_stay, null)
+                .setNegativeButton(R.string.pair_leave) { _, _ -> d.dismiss() }
+                .show()
+        }
 
         fun showSecond() {
             if (phase == 3 || !d.isShowing) return
@@ -328,8 +431,8 @@ class DiaryFragment : Fragment() {
             db.etDia.error = null
             db.etPulse.error = null
             preview()
-            d.getButton(AlertDialog.BUTTON_POSITIVE).text = getString(R.string.pair_save_avg)
-            d.getButton(AlertDialog.BUTTON_NEUTRAL).visibility = View.GONE
+            showActions()
+            capForm(db.formScroll)
             db.etSys.requestFocus()
         }
 
@@ -337,6 +440,7 @@ class DiaryFragment : Fragment() {
             first = reading
             phase = 2
             waiting = true
+            hideKeyboard()
             d.setTitle(R.string.pair_wait_title)
             db.tvStep.visibility = View.GONE
             showNumbers(false)
@@ -347,8 +451,8 @@ class DiaryFragment : Fragment() {
             db.tvWait.text = getString(R.string.pair_wait)
             val totalSec = (PAIR_GAP_MS / 1000).toInt()
             db.tvTimer.text = String.format(Locale.getDefault(), "%d:%02d", totalSec / 60, totalSec % 60)
-            d.getButton(AlertDialog.BUTTON_POSITIVE).text = getString(R.string.pair_skip_wait)
-            d.getButton(AlertDialog.BUTTON_NEUTRAL).visibility = View.GONE
+            showActions()
+            capForm(db.formScroll)
             d.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             pairTimer?.cancel()
             pairTimer = object : CountDownTimer(PAIR_GAP_MS, 250) {
@@ -370,13 +474,32 @@ class DiaryFragment : Fragment() {
         d.setOnDismissListener {
             waiting = false
             stopPairSession()
+            try {
+                leaveAsk?.dismiss()
+            } catch (_: Exception) {
+            }
+            try {
+                singleAsk?.dismiss()
+            } catch (_: Exception) {
+            }
             if (pairDialog === d) pairDialog = null
         }
+        d.setOnKeyListener { _, keyCode, event ->
+            if (keyCode == KeyEvent.KEYCODE_BACK && event.action == KeyEvent.ACTION_UP) {
+                tryLeave()
+                true
+            } else {
+                false
+            }
+        }
+        d.setOnShowListener { capForm(db.formScroll) }
         pairDialog = d
 
         db.tvStep.visibility = View.VISIBLE
         db.tvStep.text = getString(R.string.pair_step_first)
+        db.tvWarn.visibility = View.VISIBLE
         field(db.etNote, true)
+        showActions()
         val watcher = object : android.text.TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
@@ -387,8 +510,7 @@ class DiaryFragment : Fragment() {
         db.etSys.addTextChangedListener(watcher)
         db.etDia.addTextChangedListener(watcher)
 
-        d.show()
-        d.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+        db.btnPrimary.setOnClickListener {
             when (phase) {
                 1 -> {
                     val reading = readingOrNull() ?: return@setOnClickListener
@@ -417,16 +539,20 @@ class DiaryFragment : Fragment() {
                 }
             }
         }
-        d.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+        db.btnCancelPair.setOnClickListener { tryLeave() }
+        db.btnSingle.setOnClickListener {
             if (phase != 1) return@setOnClickListener
             val reading = readingOrNull() ?: return@setOnClickListener
-            val time = if (whenTouched) whenMillis else System.currentTimeMillis()
-            if (timeIsFuture(time)) return@setOnClickListener
-            val note = db.etNote.text?.toString()?.trim().orEmpty()
-            store.addRecord(reading.sys, reading.dia, reading.pulse, note, time)
-            refresh()
-            d.dismiss()
+            if (singleAsk?.isShowing == true) return@setOnClickListener
+            hideKeyboard()
+            singleAsk = com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.pair_single_title)
+                .setMessage(R.string.pair_single_msg)
+                .setPositiveButton(R.string.pair_single_back, null)
+                .setNegativeButton(R.string.pair_single_anyway) { _, _ -> saveSingle(reading) }
+                .show()
         }
+        d.show()
     }
 
     private fun timeIsFuture(whenMillis: Long): Boolean {
@@ -529,6 +655,7 @@ class DiaryFragment : Fragment() {
             .setPositiveButton(R.string.save, null)
             .setNegativeButton(R.string.cancel, null)
             .create()
+        d.setOnShowListener { capForm(db.formScroll) }
         d.show()
         d.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
             val sys = db.etSys.text?.toString()?.toIntOrNull()

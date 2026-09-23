@@ -95,7 +95,7 @@
     <string name="about_pair_2_title">2. Нажмите «+»</string>
     <string name="about_pair_2_body">Откройте вкладку «Дневник» и нажмите синюю кнопку «+» внизу справа. Откроется окно «Замер 1 из 2».</string>
     <string name="about_pair_3_title">3. Введите первый замер</string>
-    <string name="about_pair_3_body">Измерьте давление тонометром. Впишите верхнее, нижнее и, если есть, пульс. Нажмите «Дальше». Кнопку «Один замер» не нажимайте: тогда запишется только это число, без среднего.</string>
+    <string name="about_pair_3_body">Измерьте давление тонометром. Впишите верхнее, нижнее и, если есть, пульс. Нажмите синюю кнопку «Дальше» внизу окна. «Один замер» не нажимайте: тогда запишется только это число, без среднего. Если нажать её всё же, приложение переспросит.</string>
     <string name="about_pair_4_title">4. Посидите минуту</string>
     <string name="about_pair_4_body">На экране идёт таймер 1:00. Сидите спокойно и не разговаривайте. Когда прозвучит сигнал и телефон коротко завибрирует — измерьте ещё раз. Если минута уже прошла, можно нажать «Пропустить ожидание»: второй замер всё равно попросит.</string>
     <string name="about_pair_5_title">5. Введите второй замер</string>
@@ -138,7 +138,7 @@
 
     <!-- Дневник -->
     <string name="stats_title">Сводка</string>
-    <string name="no_records">Пока нет измерений.\nНажмите «+», чтобы добавить первое.</string>
+    <string name="no_records">Пока нет измерений.\nНажмите «+»: два замера, в дневник запишется среднее.</string>
     <string name="add_record">Новое измерение</string>
     <string name="edit_record">Изменить измерение</string>
     <string name="save">Сохранить</string>
@@ -157,7 +157,17 @@
     <string name="pair_first_title">Замер 1 из 2</string>
     <string name="pair_second_title">Замер 2 из 2</string>
     <string name="pair_wait_title">Минута между замерами</string>
-    <string name="pair_step_first">Введите первый замер и нажмите «Дальше». Не «Один замер»: иначе среднее не запишется. Картинки — в «О программе».</string>
+    <string name="pair_step_first">Впишите числа с тонометра и нажмите синюю «Дальше» внизу окна.</string>
+    <string name="pair_warn">Не «Один замер»: иначе среднее не запишется. Случайное нажатие приложение переспросит. Картинки — в «О программе».</string>
+    <string name="pair_single_title">Без среднего</string>
+    <string name="pair_single_msg">Запишется только это число. Среднее не посчитается. Чтобы сохранить среднее, нажмите «Дальше».</string>
+    <string name="pair_single_anyway">Всё равно один</string>
+    <string name="pair_single_back">К двум замерам</string>
+    <string name="pair_single_toast">Сохранён один замер %1$d/%2$d, без среднего</string>
+    <string name="pair_leave_title">Первый замер не сохранён</string>
+    <string name="pair_leave_msg">Если выйти сейчас, оба числа придётся вводить заново. Среднее не запишется.</string>
+    <string name="pair_leave">Выйти</string>
+    <string name="pair_stay">Остаться</string>
     <string name="pair_step_second">Введите второй замер. В дневник сохранится среднее.</string>
     <string name="pair_wait">Сядьте спокойно и не разговаривайте. Когда прозвучит сигнал — измерьте ещё раз.</string>
     <string name="pair_next">Дальше</string>
@@ -197,7 +207,7 @@
     <!-- Шаблоны для сводки и значений -->
     <string name="bp_value">%1$d / %2$d</string>
     <string name="pulse_value">Пульс: %1$d уд/мин</string>
-    <string name="stats_empty">Измерений пока нет.\nДобавьте первое измерение кнопкой «+».</string>
+    <string name="stats_empty">Измерений пока нет.\nКнопка «+» просит два замера и сохраняет среднее.</string>
     <string name="stats_line_counts">Измерений всего: %1$d  •  за 7 дней: %2$d</string>
     <string name="stats_line_avg">Среднее за 7 дней: %1$d/%2$d мм рт.ст. • пульс %3$d</string>
     <string name="stats_line_avg_no_pulse">Среднее за 7 дней: %1$d/%2$d мм рт.ст.</string>
