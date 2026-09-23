@@ -13,7 +13,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 /** Перед PDF спрашивает ФИО и возраст, запоминает их и открывает отправку. */
 object PdfShare {
 
-    fun start(fragment: Fragment, records: List<BpRecord>, periodNote: String?) {
+    fun start(fragment: Fragment, records: List<BpRecord>, periodNote: String?, logFrom: Long = 0L) {
         if (!fragment.isAdded) return
         val ctx = fragment.requireContext()
         if (records.isEmpty()) {
@@ -56,7 +56,15 @@ object PdfShare {
             } else form.etAge.error = null
             if (!ok || !fragment.isAdded) return@setOnClickListener
             store.savePatient(name, age!!)
-            val file = PdfExporter.build(ctx, records, periodNote, name, age) ?: return@setOnClickListener
+            val file = PdfExporter.build(
+                ctx,
+                records,
+                periodNote,
+                name,
+                age,
+                store.meds(),
+                store.logs().filter { it.time >= logFrom }
+            ) ?: return@setOnClickListener
             val uri = FileProvider.getUriForFile(ctx, "${ctx.packageName}.fileprovider", file)
             val title = file.nameWithoutExtension
             val send = Intent(Intent.ACTION_SEND).apply {

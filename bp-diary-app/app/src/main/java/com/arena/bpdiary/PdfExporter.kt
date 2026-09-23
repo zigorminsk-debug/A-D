@@ -13,7 +13,7 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Генератор PDF-отчёта для врача: сводка, график, таблица измерений.
+ * Генератор PDF-отчёта для врача: сводка, препараты с дозировкой и временем приёма, график, таблица измерений.
  * Длинная таблица продолжается на следующих страницах и не залезает на подвал.
  */
 object PdfExporter {
@@ -39,7 +39,9 @@ object PdfExporter {
         recordsDesc: List<BpRecord>,
         periodNote: String? = null,
         patientName: String,
-        patientAge: Int
+        patientAge: Int,
+        meds: List<Med> = emptyList(),
+        intake: List<MedLog> = emptyList()
     ): File? {
         if (recordsDesc.isEmpty()) return null
         val asc = recordsDesc.sortedBy { it.time }
@@ -184,6 +186,103 @@ object PdfExporter {
             y += 14f
         }
 
+        fun clock(hour: Int, minute: Int) =
+            String.format(Locale.getDefault(), "%02d:%02d", hour, minute)
+
+        fun regimenTimes(med: Med): String {
+            val on = med.times.filter { it.enabled }.joinToString(", ") { clock(it.hour, it.minute) }
+            val off = med.times.filter { !it.enabled }.joinToString(", ") { clock(it.hour, it.minute) }
+            val parts = mutableListOf<String>()
+            if (on.isNotBlank()) parts += on
+            if (off.isNotBlank()) parts += "выкл: $off"
+            if (!med.enabled) parts += "на паузе"
+            return parts.joinToString("; ").ifBlank { "время не задано" }
+        }
+
+        val rowH = 16f
+        val tableRight = PAGE_W - M
+
+        fun cell(text: String, x: Float, maxW: Float) {
+            c.drawText(ellipsize(text.ifBlank { "—" }, body, maxW), x, y + 11.5f, body)
+        }
+
+        /** Колонка: отступ от левого поля, заголовок, ширина текста. */
+        fun sectionTable(title: String, empty: String, cols: List<Triple<Float, String, Float>>, rows: List<List<String>>) {
+            ensure(36f)
+            y += 8f
+            c.drawText(title, M, y, h2)
+            y += 8f
+            fun header() {
+                ensure(20f)
+                c.drawRect(M, y, tableRight, y + 18f, hdrBg)
+                cols.forEach { (x, text, _) -> c.drawText(text, M + x, y + 12.5f, hdrTx) }
+                y += 18f
+            }
+            header()
+            if (rows.isEmpty()) {
+                ensure(rowH)
+                c.drawText(empty, M + 4f, y + 11.5f, small)
+                y += rowH
+                return
+            }
+            rows.forEachIndexed { i, row ->
+                if (y + rowH > BOTTOM) {
+                    newPage()
+                    header()
+                }
+                if (i % 2 == 1) c.drawRect(M, y, tableRight, y + rowH, rowAlt)
+                cols.forEachIndexed { index, (x, _, width) ->
+                    cell(row.getOrElse(index) { "" }, M + x, width)
+                }
+                c.drawLine(M, y + rowH, tableRight, y + rowH, thin)
+                y += rowH
+            }
+        }
+
+        val medsSorted = meds.sortedWith(compareBy({ it.name.lowercase(Locale("ru")) }, { it.dose }))
+        sectionTable(
+            "Текущий список препаратов: дозировка и время приёма",
+            "Препараты не записаны.",
+            listOf(
+                Triple(4f, "Препарат", 164f),
+                Triple(176f, "Дозировка", 108f),
+                Triple(292f, "Время приёма", 250f)
+            ),
+            medsSorted.map { med ->
+                listOf(
+                    med.name.ifBlank { "без названия" },
+                    med.dose.ifBlank { "—" },
+                    regimenTimes(med)
+                )
+            }
+        )
+        val marks = intake.sortedByDescending { it.time }
+        sectionTable(
+            "Отметки приёма за период отчёта",
+            "Отметок о приёме за этот период нет.",
+            listOf(
+                Triple(4f, "Дата и время", 120f),
+                Triple(132f, "Препарат", 152f),
+                Triple(292f, "Дозировка", 104f),
+                Triple(404f, "Отметка", 140f)
+            ),
+            marks.map { log ->
+                val slot = if (log.slotHour >= 0) " · слот ${clock(log.slotHour, log.slotMinute)}" else ""
+                val mark = (if (log.status == "skipped") "пропущен" else "принят") + slot
+                listOf(
+                    dfFull.format(Date(log.time)),
+                    log.medName.ifBlank { "препарат" },
+                    log.dose.ifBlank { "—" },
+                    mark
+                )
+            }
+        )
+        if (marks.size >= 200) {
+            ensure(14f)
+            c.drawText("В отчёте не больше 200 последних отметок.", M, y + 12f, small)
+            y += 16f
+        }
+
         ensure(210f)
         y += 8f
         c.drawText("Динамика давления", M, y, h2)
@@ -226,7 +325,6 @@ object PdfExporter {
         y += 8f
         drawTableHeader()
 
-        val rowH = 16f
         all.forEachIndexed { i, r ->
             if (y + rowH > BOTTOM) {
                 newPage()

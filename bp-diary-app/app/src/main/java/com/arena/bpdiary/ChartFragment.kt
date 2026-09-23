@@ -73,7 +73,9 @@ class ChartFragment : Fragment() {
     }
 
     private fun exportPdf() {
-        PdfShare.start(this, visibleRecords(), getString(R.string.pdf_period_fmt, periodLabel()))
+        val days = periodDays()
+        val from = if (days == Int.MAX_VALUE) 0L else System.currentTimeMillis() - days * 86_400_000L
+        PdfShare.start(this, visibleRecords(), getString(R.string.pdf_period_fmt, periodLabel()), from)
     }
 
     override fun onDestroyView() {
