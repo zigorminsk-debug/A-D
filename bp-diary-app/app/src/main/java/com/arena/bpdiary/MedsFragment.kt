@@ -1,6 +1,7 @@
 package com.arena.bpdiary
 
 import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
 import android.view.Gravity
 import android.view.LayoutInflater
