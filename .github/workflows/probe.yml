@@ -1,6 +1,7 @@
 name: Probe release tag
 
 on:
+  push:
   workflow_dispatch:
 
 permissions:
