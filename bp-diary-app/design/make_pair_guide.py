@@ -68,55 +68,44 @@ def save(img, name):
     preview.save(RES / f"{name}.webp", format="WEBP", quality=82, method=6)
 
 
+def fit_figure(src, box):
+    gray = src.convert("L")
+    mask = gray.point(lambda p: 255 if p < 250 else 0)
+    bbox = mask.getbbox()
+    crop = src.crop(bbox) if bbox else src
+    bw, bh = box[2] - box[0] - 28, box[3] - box[1] - 72
+    scale = min(bw / crop.width, bh / crop.height)
+    size = (max(1, int(crop.width * scale)), max(1, int(crop.height * scale)))
+    fitted = crop.resize(size, Image.Resampling.LANCZOS)
+    x = box[0] + 14 + (bw - size[0]) // 2
+    y = box[1] + 14 + (bh - size[1]) // 2
+    return fitted.convert("RGBA"), (x, y)
+
+
 def step_prepare():
     img, d = canvas()
-    title = fnt(34, True)
-    d.text((40, 28), "Перед замером — 5 минут покоя", font=title, fill=NAVY)
-
-    panels = [
-        (40, 100, 400, 640, "Спина и ноги"),
-        (420, 100, 780, 640, "Манжета"),
-        (800, 100, 1160, 640, "Тишина"),
-    ]
-    for box, cap in ((p[:4], p[4]) for p in panels):
+    d.text((40, 24), "Перед замером — 5 минут покоя", font=fnt(34, True), fill=NAVY)
+    left = (40, 88, 760, 680)
+    right_top = (790, 88, 1160, 370)
+    right_bot = (790, 398, 1160, 680)
+    for box in (left, right_top, right_bot):
         rr(d, box, 28, WHITE)
-        text_c(d, ((box[0] + box[2]) / 2, box[3] - 36), cap, fnt(26, True), NAVY)
+    src = Image.open(OUT / "posture-ref.png")
+    figure, pos = fit_figure(src, left)
+    img.paste(figure, pos, figure)
+    text_c(d, ((left[0] + left[2]) / 2, left[3] - 34), "Спина к спинке, ноги прямо", fnt(24, True), NAVY)
 
-    # 1. человек на стуле, вид сбоку
-    cx = 220
-    # спинка
-    rr(d, (78, 180, 118, 430), 10, NAVY_SOFT)
-    # сиденье
-    rr(d, (108, 400, 250, 436), 10, NAVY_SOFT)
-    # голова
-    d.ellipse((168, 168, 248, 248), fill=SKIN, outline=SKIN_EDGE, width=3)
-    # туловище
-    rr(d, (176, 246, 250, 410), 28, (46, 116, 181))
-    # ноги вниз, не скрещены
-    d.line((196, 408, 176, 540), fill=NAVY, width=16)
-    d.line((230, 408, 250, 540), fill=NAVY, width=16)
-    d.ellipse((156, 528, 196, 552), fill=NAVY)
-    d.ellipse((232, 528, 272, 552), fill=NAVY)
-    # стол и рука
-    rr(d, (248, 318, 360, 348), 8, (214, 224, 232))
-    d.line((236, 300, 340, 300), fill=SKIN, width=22)
-    rr(d, (268, 278, 318, 322), 8, WHITE, NAVY, 4)
-    d.text((70, 200), "спина\nк спинке", font=fnt(16), fill=GRAY)
-    d.text((120, 500), "ноги не скрещены", font=fnt(16), fill=GRAY)
+    text_c(d, ((right_top[0] + right_top[2]) / 2, right_top[1] + 48), "Манжета", fnt(26, True), NAVY)
+    d.text((right_top[0] + 28, right_top[1] + 100), "На плече, не на запястье.", font=fnt(22), fill=INK)
+    d.text((right_top[0] + 28, right_top[1] + 140), "На уровне сердца,", font=fnt(22), fill=INK)
+    d.text((right_top[0] + 28, right_top[1] + 180), "на 2–3 см выше локтя.", font=fnt(22), fill=INK)
+    d.text((right_top[0] + 28, right_top[1] + 230), "Рука лежит на столе.", font=fnt(22), fill=GRAY)
 
-    # 2. манжета на уровне сердца
-    d.line((500, 250, 700, 250), fill=SKIN, width=70)
-    rr(d, (560, 190, 660, 310), 18, WHITE, NAVY, 5)
-    rr(d, (596, 190, 628, 310), 6, (46, 116, 181))
-    d.line((470, 250, 740, 250), fill=CORAL, width=3)
-    d.text((600, 360), "на уровне сердца", font=fnt(20), fill=CORAL, anchor="mm")
-    d.text((600, 400), "на 2–3 см выше локтя", font=fnt(18), fill=GRAY, anchor="mm")
-
-    # 3. тишина и 5 минут
-    text_c(d, (980, 250), "5", fnt(92, True), NAVY)
-    text_c(d, (980, 330), "минут", fnt(28, True), NAVY)
-    rr(d, (860, 390, 1100, 470), 20, (255, 236, 234))
-    text_c(d, (980, 430), "не разговаривать", fnt(22, True), CORAL)
+    text_c(d, ((right_bot[0] + right_bot[2]) / 2, right_bot[1] + 70), "5 минут", fnt(40, True), NAVY)
+    d.text((right_bot[0] + 28, right_bot[1] + 130), "Сидите спокойно.", font=fnt(22), fill=INK)
+    d.text((right_bot[0] + 28, right_bot[1] + 170), "Не разговаривайте.", font=fnt(22), fill=CORAL)
+    d.text((right_bot[0] + 28, right_bot[1] + 210), "Не смотрите в телефон,", font=fnt(22), fill=INK)
+    d.text((right_bot[0] + 28, right_bot[1] + 250), "пока манжета работает.", font=fnt(22), fill=INK)
     return img
 
 
@@ -132,8 +121,8 @@ def step_plus():
     fab = (screen[2] - 110, screen[3] - 120, screen[2] - 36, screen[3] - 46)
     d.ellipse(fab, fill=NAVY)
     text_c(d, ((fab[0] + fab[2]) / 2, (fab[1] + fab[3]) / 2 - 2), "+", fnt(48, True), WHITE)
-    # стрелка-подпись
-    d.line((900, 250, 760, 500), fill=CORAL, width=8)
+    tip = ((fab[0] + fab[2]) / 2 + 8, fab[1] + 8)
+    d.line((980, 248, tip[0], tip[1]), fill=CORAL, width=8)
     rr(d, (860, 160, 1140, 250), 18, CORAL)
     text_c(d, (1000, 205), "нажмите +", fnt(28, True), WHITE)
     return img

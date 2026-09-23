@@ -157,7 +157,7 @@
     <string name="pair_first_title">Замер 1 из 2</string>
     <string name="pair_second_title">Замер 2 из 2</string>
     <string name="pair_wait_title">Минута между замерами</string>
-    <string name="pair_step_first">Введите первый замер. Потом минута покоя и сигнал.</string>
+    <string name="pair_step_first">Введите первый замер и нажмите «Дальше». Не «Один замер»: иначе среднее не запишется. Картинки — в «О программе».</string>
     <string name="pair_step_second">Введите второй замер. В дневник сохранится среднее.</string>
     <string name="pair_wait">Сядьте спокойно и не разговаривайте. Когда прозвучит сигнал — измерьте ещё раз.</string>
     <string name="pair_next">Дальше</string>
