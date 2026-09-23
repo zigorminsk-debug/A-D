@@ -73,9 +73,17 @@ object Emergency {
      * Пустое поле — 103. Буквы и слишком короткий номер — null, запись не затирается.
      */
     fun acceptedPhone(raw: String): String? {
-        val cleaned = raw.trim().replace(Regex("[\s\-().]"), "")
-        if (cleaned.isEmpty()) return DEFAULT_PHONE
-        return if (cleaned.matches(Regex("^\+?[0-9]{2,15}$"))) cleaned else null
+        val trimmed = raw.trim()
+        if (trimmed.isEmpty()) return DEFAULT_PHONE
+        val cleaned = buildString {
+            for (ch in trimmed) {
+                if (ch == ' ' || ch == '-' || ch == '(' || ch == ')' || ch == '.') continue
+                append(ch)
+            }
+        }
+        val digits = if (cleaned.startsWith("+")) cleaned.drop(1) else cleaned
+        if (digits.length !in 2..15 || digits.any { !it.isDigit() }) return null
+        return if (cleaned.startsWith("+")) "+$digits" else digits
     }
 
     /** false — номер не сохранился, остальные поля записаны. */
