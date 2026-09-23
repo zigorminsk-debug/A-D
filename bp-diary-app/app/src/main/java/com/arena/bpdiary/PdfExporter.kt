@@ -159,10 +159,10 @@ object PdfExporter {
         val lastCat = BpClassifier.classify(context, last.sys, last.dia).label
         val lines = mutableListOf(
             "Измерений в отчёте: ${all.size} • за последние 7 дней: ${week.size}",
-            "Среднее за период отчёта: ${avg(all) { it.sys }}/${avg(all) { it.dia }} мм рт.ст. • ${pulseText(all)}"
+            "Среднее за период отчёта: ${avg(all) { it.sys }}/${avg(all) { it.dia }} мм рт. ст. • ${pulseText(all)}"
         )
         if (week.isNotEmpty()) {
-            lines.add("Среднее за 7 дней: ${avg(week) { it.sys }}/${avg(week) { it.dia }} мм рт.ст. • ${pulseText(week)}")
+            lines.add("Среднее за 7 дней: ${avg(week) { it.sys }}/${avg(week) { it.dia }} мм рт. ст. • ${pulseText(week)}")
         }
         if (week.size >= 2) {
             val hourOf = { t: Long ->
@@ -177,7 +177,7 @@ object PdfExporter {
             }
         }
         lines.add("Последнее: ${dfFull.format(Date(last.time))} — ${last.sys}/${last.dia} ($lastCat)")
-        lines.add("Цель по гайдлайнам: ниже 130/80 мм рт.ст.; дома — ниже 135/85")
+        lines.add("Цель по рекомендациям: ниже 130/80 мм рт. ст.; дома — ниже 135/85")
         lines.forEach {
             ensure(14f)
             c.drawText(it, M, y, body)

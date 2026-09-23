@@ -51,26 +51,26 @@ class MemoFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        b.etSosPhone.setText(Emergency.phone(requireContext()))
         b.etSosName.setText(Emergency.patientName(requireContext()))
         b.etSosClinic.setText(Emergency.clinic(requireContext()))
         b.etSosAddress.setText(Emergency.address(requireContext()))
         b.etSosExtra.setText(Emergency.extra(requireContext()))
         b.tvSosPreview.text = Emergency.script(requireContext())
+        refreshCallLabels()
         val watch = object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable?) { refreshSosPreview() }
         }
+        b.etSosPhone.addTextChangedListener(watch)
         b.etSosName.addTextChangedListener(watch)
         b.etSosClinic.addTextChangedListener(watch)
         b.etSosAddress.addTextChangedListener(watch)
         b.etSosExtra.addTextChangedListener(watch)
-        b.btnSosSave.setOnClickListener {
-            persistSos()
-            Toast.makeText(requireContext(), R.string.sos_saved, Toast.LENGTH_LONG).show()
-        }
+        b.btnSosSave.setOnClickListener { persistSos(announce = true) }
         b.btnSosListen.setOnClickListener {
-            persistSos()
+            if (!persistSos(announce = true)) return@setOnClickListener
             Emergency.showAndSpeak(this, Emergency.script(requireContext())) { callAmbulance() }
         }
         b.btnSosCall.setOnClickListener { callAmbulance() }
@@ -100,23 +100,44 @@ class MemoFragment : Fragment() {
 
     private fun reloadSos() {
         if (_b == null) return
+        b.etSosPhone.setText(Emergency.phone(requireContext()))
         b.etSosName.setText(Emergency.patientName(requireContext()))
         b.etSosClinic.setText(Emergency.clinic(requireContext()))
         b.etSosAddress.setText(Emergency.address(requireContext()))
         b.etSosExtra.setText(Emergency.extra(requireContext()))
         b.tvSosPreview.text = Emergency.script(requireContext())
+        refreshCallLabels()
     }
 
-    private fun persistSos() {
-        if (_b == null) return
-        Emergency.save(
+    private fun persistSos(announce: Boolean = false): Boolean {
+        if (_b == null) return false
+        val ok = Emergency.save(
             requireContext(),
             b.etSosName.text?.toString().orEmpty(),
             b.etSosClinic.text?.toString().orEmpty(),
             b.etSosAddress.text?.toString().orEmpty(),
-            b.etSosExtra.text?.toString().orEmpty()
+            b.etSosExtra.text?.toString().orEmpty(),
+            b.etSosPhone.text?.toString().orEmpty()
         )
+        b.etSosPhone.error = if (ok) null else getString(R.string.sos_phone_bad)
         b.tvSosPreview.text = Emergency.script(requireContext())
+        refreshCallLabels()
+        if (announce) {
+            Toast.makeText(
+                requireContext(),
+                if (ok) R.string.sos_saved else R.string.sos_phone_bad,
+                Toast.LENGTH_LONG
+            ).show()
+        }
+        return ok
+    }
+
+    private fun refreshCallLabels() {
+        if (_b == null) return
+        val label = Emergency.callLabel(requireContext())
+        b.tvSosTitle.text = getString(R.string.sos_title_fmt, Emergency.phone(requireContext()))
+        b.btnSosCall.text = label
+        b.btnRedCall.text = label
     }
 
     private fun refreshSosPreview() {
@@ -141,7 +162,7 @@ class MemoFragment : Fragment() {
     private fun dialAmbulance() {
         val act = activity ?: return
         if (!Emergency.placeCall(act)) {
-            Toast.makeText(act, R.string.sos_call_fail, Toast.LENGTH_LONG).show()
+            Toast.makeText(act, getString(R.string.sos_call_fail, Emergency.phone(act)), Toast.LENGTH_LONG).show()
         }
     }
 

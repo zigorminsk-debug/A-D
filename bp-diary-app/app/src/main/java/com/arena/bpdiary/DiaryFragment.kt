@@ -81,10 +81,11 @@ class DiaryFragment : Fragment() {
         b.btnCall103.setOnClickListener { callAmbulance() }
         b.btnStroke.setOnClickListener { speakStrokeAndCall() }
         b.btnSosData.setOnClickListener {
-            Emergency.showDataDialog(this, onLocate = { deliver ->
+            Emergency.showDataDialog(this, onClosed = { refreshCallLabel() }, onLocate = { deliver ->
                 withLocation { Emergency.locateAndDescribe(requireContext(), deliver) }
             })
         }
+        refreshCallLabel()
         if (PlaceFinder.shouldAsk(requireContext())) {
             PlaceFinder.markAsked(requireContext())
             locationPermission.launch(PlaceFinder.PERMISSIONS)
@@ -121,8 +122,13 @@ class DiaryFragment : Fragment() {
     private fun dialAmbulance() {
         val act = activity ?: return
         if (!Emergency.placeCall(act)) {
-            Toast.makeText(act, R.string.sos_call_fail, Toast.LENGTH_LONG).show()
+            Toast.makeText(act, getString(R.string.sos_call_fail, Emergency.phone(act)), Toast.LENGTH_LONG).show()
         }
+    }
+
+    private fun refreshCallLabel() {
+        if (_b == null) return
+        b.btnCall103.text = Emergency.callLabel(requireContext())
     }
 
     private fun speakStrokeAndCall() {
@@ -141,6 +147,7 @@ class DiaryFragment : Fragment() {
             b.emptyState.visibility = if (recs.isEmpty()) View.VISIBLE else View.GONE
             updateStats(recs)
             updateToday(recs)
+            refreshCallLabel()
             WidgetProvider.updateAll(requireContext())
         } catch (_: Exception) {
             b.tvStats.text = getString(R.string.stats_empty)

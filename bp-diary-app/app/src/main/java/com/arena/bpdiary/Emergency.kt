@@ -35,7 +35,8 @@ object Emergency {
     private const val KEY_CLINIC = "clinic"
     private const val KEY_ADDRESS = "address"
     private const val KEY_EXTRA = "extra"
-    private const val NUMBER = "103"
+    private const val KEY_PHONE = "phone"
+    private const val DEFAULT_PHONE = "103"
 
     private val main = Handler(Looper.getMainLooper())
     private var engine: TextToSpeech? = null
@@ -62,14 +63,44 @@ object Emergency {
 
     fun extra(ctx: Context): String = pref(ctx, KEY_EXTRA)
 
-    fun save(ctx: Context, name: String, clinic: String, address: String, extra: String) {
-        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    /** Сохранённый номер скорой. Пустая запись и неверный текст дают 103. */
+    fun phone(ctx: Context): String = acceptedPhone(pref(ctx, KEY_PHONE)) ?: DEFAULT_PHONE
+
+    fun callLabel(ctx: Context): String = ctx.getString(R.string.sos_call_fmt, phone(ctx))
+
+    /**
+     * Номер для звонилки: цифры и необязательный «+».
+     * Пустое поле — 103. Буквы и слишком короткий номер — null, запись не затирается.
+     */
+    fun acceptedPhone(raw: String): String? {
+        val cleaned = raw.trim().replace(Regex("[\s\-().]"), "")
+        if (cleaned.isEmpty()) return DEFAULT_PHONE
+        return if (cleaned.matches(Regex("^\+?[0-9]{2,15}$"))) cleaned else null
+    }
+
+    /** false — номер не сохранился, остальные поля записаны. */
+    fun save(
+        ctx: Context,
+        name: String,
+        clinic: String,
+        address: String,
+        extra: String,
+        phone: String? = null
+    ): Boolean {
+        val editor = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
             .putString(KEY_NAME, name.trim())
             .putString(KEY_CLINIC, clinic.trim())
             .putString(KEY_ADDRESS, address.trim())
             .putString(KEY_EXTRA, extra.trim())
-            .commit()
+        var phoneOk = true
+        if (phone != null) {
+            val normalized = acceptedPhone(phone)
+            if (normalized == null) phoneOk = false
+            else editor.putString(KEY_PHONE, normalized)
+        }
+        editor.commit()
+        return phoneOk
     }
 
     private fun pref(ctx: Context, key: String): String =
@@ -128,7 +159,7 @@ object Emergency {
 
     /** Всегда звонилка телефона по умолчанию. Приложение само трубку не снимает. */
     fun placeCall(activity: Activity): Boolean {
-        val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$NUMBER"))
+        val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${phone(activity)}"))
         return try {
             activity.startActivity(intent)
             true
@@ -229,6 +260,7 @@ object Emergency {
     ) {
         val activity = fragment.activity ?: return
         val binding = DialogSosDataBinding.inflate(fragment.layoutInflater)
+        binding.etSosPhone.setText(phone(activity))
         binding.etSosName.setText(patientName(activity))
         binding.etSosClinic.setText(clinic(activity))
         binding.etSosAddress.setText(address(activity))
@@ -256,24 +288,25 @@ object Emergency {
             .setView(binding.root)
             .setCancelable(true)
             .create()
-        binding.btnSosPlace.setOnClickListener {
-            save(
+        fun persistDialog(): Boolean {
+            val ok = save(
                 activity,
                 binding.etSosName.text?.toString().orEmpty(),
                 binding.etSosClinic.text?.toString().orEmpty(),
                 binding.etSosAddress.text?.toString().orEmpty(),
-                binding.etSosExtra.text?.toString().orEmpty()
+                binding.etSosExtra.text?.toString().orEmpty(),
+                binding.etSosPhone.text?.toString().orEmpty()
             )
+            binding.etSosPhone.error = if (ok) null else activity.getString(R.string.sos_phone_bad)
+            if (!ok) toast(activity, R.string.sos_phone_bad)
+            return ok
+        }
+        binding.btnSosPlace.setOnClickListener {
+            persistDialog()
             onLocate { text -> binding.tvSosPlace.text = text }
         }
         binding.btnSosSave.setOnClickListener {
-            save(
-                activity,
-                binding.etSosName.text?.toString().orEmpty(),
-                binding.etSosClinic.text?.toString().orEmpty(),
-                binding.etSosAddress.text?.toString().orEmpty(),
-                binding.etSosExtra.text?.toString().orEmpty()
-            )
+            if (!persistDialog()) return@setOnClickListener
             toast(activity, R.string.sos_saved)
             dialog.dismiss()
         }
@@ -348,6 +381,7 @@ object Emergency {
         val activity = fragment.activity ?: return
         val binding = DialogStrokeBinding.inflate(fragment.layoutInflater)
         binding.tvStrokeSpeech.text = text
+        binding.btnStrokeCall.text = callLabel(activity)
         speechView = binding.tvStrokeSpeech
         val dialog = MaterialAlertDialogBuilder(activity)
             .setView(binding.root)
