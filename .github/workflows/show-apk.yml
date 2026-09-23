@@ -1,0 +1,102 @@
+name: Show APK on release tag
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  show:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Забрать код
+        uses: actions/checkout@v4
+
+      - name: Заново опубликовать APK из черновика
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          repo="$GITHUB_REPOSITORY"
+          mkdir -p dist
+          gh run download 35843781087 --repo "$repo" -n BPDiary-APK -D dist
+          test -f dist/BPDiary-release.apk
+          test -f dist/BPDiary-debug.apk
+          gradle_file=bp-diary-app/app/build.gradle
+          code=$(sed -n 's/^[[:space:]]*versionCode[[:space:]]*[ =]*\([0-9][0-9]*\).*/\1/p' "$gradle_file" | head -1)
+          name=$(sed -n 's/^[[:space:]]*versionName[[:space:]]*[ =]*"\([^"]*\)".*/\1/p' "$gradle_file" | head -1)
+          test -n "$code"
+          test -n "$name"
+          sha=$(sha256sum dist/BPDiary-release.apk | awk '{print $1}')
+          test "${#sha}" -eq 64
+          printf '{"versionCode":%s,"versionName":"%s","sha256":"%s"}\n' "$code" "$name" "$sha" > dist/version.json
+          {
+            printf 'versionCode: %s\n' "$code"
+            printf 'versionName: %s\n' "$name"
+            printf 'sha256: %s\n' "$sha"
+            printf 'Автосборка %s. Оба файла подписаны постоянным ключом bp-diary-app/keystore/bp-diary.keystore (alias bpdiary). Обновление ставится поверх без удаления данных. Для установки берите BPDiary-release.apk.\n' "$GITHUB_SHA"
+          } > dist/release-notes.txt
+          id=$(gh api "repos/${repo}/releases/tags/latest-apk" --jq .id)
+          echo "::warning::release=${id} version=${code}"
+          # Черновик, заливка, потом публикация. Иначе метка запоминает пустой список файлов.
+          gh api -X PATCH "repos/${repo}/releases/${id}" -F draft=true --jq .draft
+          printf 'canary\n' > "dist/canary-${GITHUB_RUN_ID}.txt"
+          gh release upload latest-apk "dist/canary-${GITHUB_RUN_ID}.txt" --repo "$repo"
+          seen=$(gh api "repos/${repo}/releases/${id}/assets" --jq '[.[].name] | join(",")')
+          case ",${seen}," in
+            *,"canary-${GITHUB_RUN_ID}.txt",*) ;;
+            *) echo "::error::заливка в черновик не дошла: ${seen}"; exit 1 ;;
+          esac
+          gh api "repos/${repo}/releases/${id}/assets" --jq '.[].id' | while read -r aid; do
+            [ -n "$aid" ] || continue
+            gh api -X DELETE "repos/${repo}/releases/assets/${aid}"
+          done
+          ok=0
+          for attempt in 1 2 3; do
+            if gh release upload latest-apk \
+                dist/BPDiary-release.apk \
+                dist/BPDiary-debug.apk \
+                dist/version.json \
+                --repo "$repo"; then
+              ok=1
+              break
+            fi
+            echo "::warning::upload attempt ${attempt} failed"
+            sleep 5
+          done
+          test "$ok" = 1
+          names=$(gh api "repos/${repo}/releases/${id}/assets" --jq '[.[].name] | join(",")')
+          echo "::warning::draft assets=${names}"
+          case ",${names}," in
+            *,BPDiary-release.apk,*) ;;
+            *) echo "::error::в черновике нет APK"; exit 1 ;;
+          esac
+          gh api -X PATCH "repos/${repo}/releases/${id}" -F draft=false -f make_latest=true --jq .draft
+          gh release edit latest-apk --title "Дневник АД — последний APK" --notes-file dist/release-notes.txt --repo "$repo"
+          echo "ждём, чтобы ответ по метке устаканился"
+          sleep 80
+          tag=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            -H "User-Agent: BPDiary" \
+            "repos/${repo}/releases/tags/latest-apk" \
+            --jq '[.assets[].name] | join(",")' || true)
+          echo "::warning::TAG=${tag}"
+          case ",${tag}," in
+            *,BPDiary-release.apk,*) ;;
+            *) echo "::error::после публикации метка снова без файла: ${tag}"; exit 1 ;;
+          esac
+
+      - name: Вернуть релиз из черновика
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          id=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/latest-apk" --jq .id)
+          if [ -n "$id" ] && [ "$id" != "null" ]; then
+            gh api -X PATCH "repos/${GITHUB_REPOSITORY}/releases/${id}" -F draft=false
+          fi
