@@ -122,7 +122,6 @@ jobs:
           retention-days: 90
 
       - name: Опубликовать APK в Releases
-        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -142,13 +141,30 @@ jobs:
             printf 'sha256: %s\n' "$sha"
             printf 'Автосборка %s (%s). Оба файла подписаны постоянным ключом bp-diary-app/keystore/bp-diary.keystore (alias bpdiary). Обновление ставится поверх без удаления данных. Для установки берите BPDiary-release.apk.\n' "$GITHUB_SHA" "$GITHUB_REF_NAME"
           } > dist/release-notes.txt
-          gh release delete latest-apk --cleanup-tag --yes || true
-          gh release create latest-apk \
-            dist/BPDiary-release.apk \
-            dist/BPDiary-debug.apk \
-            dist/version.json \
-            --title "Дневник АД — последний APK" \
-            --notes-file dist/release-notes.txt
+          # Не удалять релиз: после delete телефон несколько минут видит версию без APK.
+          if gh release view latest-apk >/dev/null 2>&1; then
+            gh release upload latest-apk \
+              dist/BPDiary-release.apk \
+              dist/BPDiary-debug.apk \
+              dist/version.json \
+              --clobber
+            gh release edit latest-apk \
+              --title "Дневник АД — последний APK" \
+              --notes-file dist/release-notes.txt
+          else
+            gh release create latest-apk \
+              dist/BPDiary-release.apk \
+              dist/BPDiary-debug.apk \
+              dist/version.json \
+              --title "Дневник АД — последний APK" \
+              --notes-file dist/release-notes.txt
+          fi
+          names=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/latest-apk" --jq '[.assets[].name] | join(",")')
+          echo "tag assets: $names"
+          case ",$names," in
+            *,BPDiary-release.apk,*) ;;
+            *) echo "Телефон не увидит APK: в ответе по метке нет файла" >&2; exit 1 ;;
+          esac
 
       - name: Краткий итог
         run: |

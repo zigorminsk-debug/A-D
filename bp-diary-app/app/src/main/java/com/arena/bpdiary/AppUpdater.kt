@@ -20,6 +20,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
@@ -396,7 +397,7 @@ object AppUpdater {
         } catch (_: Exception) {
             return Check.Bad(R.string.update_fail_net)
         }
-        val assets = parseAssets(json)
+        val assets = loadAssets(json, tok)
         var version = parseNotes(json.optString("body"))
         if (version == null) {
             val meta = assets.firstOrNull { it.name == META_NAME }
@@ -642,6 +643,29 @@ object AppUpdater {
         if (code <= 0) return null
         val sha = o.optString("sha256")
         return Ver(code, o.optString("versionName").ifBlank { code.toString() }, sha)
+    }
+
+    /**
+     * Ответ по метке latest-apk иногда приходит без списка файлов, хотя они уже залиты.
+     * Тогда берём assets_url того же релиза — иначе телефон пишет, что обновления нет.
+     */
+    private fun loadAssets(json: JSONObject, token: String): List<Asset> {
+        val inline = parseAssets(json)
+        if (inline.isNotEmpty()) return inline
+        val url = json.optString("assets_url")
+        if (url.isBlank()) return inline
+        val http = try {
+            httpText(url, token, "application/vnd.github+json", 500_000)
+        } catch (_: Exception) {
+            return inline
+        }
+        if (http.code !in 200..299 || http.text.isBlank()) return inline
+        val arr = try {
+            JSONArray(http.text)
+        } catch (_: Exception) {
+            return inline
+        }
+        return parseAssets(JSONObject().put("assets", arr))
     }
 
     private fun parseAssets(json: JSONObject): List<Asset> {
