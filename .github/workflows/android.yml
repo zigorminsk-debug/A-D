@@ -1,7 +1,6 @@
 name: Build APK (Дневник АД)
 
 on:
-  push:
   workflow_dispatch:
 
 permissions:
