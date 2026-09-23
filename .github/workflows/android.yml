@@ -14,56 +14,6 @@ jobs:
       - name: Забрать код
         uses: actions/checkout@v4
 
-      # Метка latest-apk иногда отдаёт релиз без assets, хотя GET /releases/{id} их содержит.
-      # Телефон читает только метку. Проба ждёт дольше кэша (60 с): если файл пропадает,
-      # публиковать заново нельзя — удаление релиза оставит телефон без APK.
-      - name: "Проба: метка релиза показывает файл"
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -uo pipefail
-          probe_ok=0
-          cleanup() {
-            gh release delete asset-probe --yes --cleanup-tag --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || true
-          }
-          cleanup
-          printf 'probe\n' > "$RUNNER_TEMP/probe.txt"
-          if gh release create asset-probe "$RUNNER_TEMP/probe.txt" \
-              --title "probe" \
-              --notes "probe" \
-              --repo "$GITHUB_REPOSITORY"; then
-            echo "ждём сброса кэша метки"
-            sleep 75
-            probe_ok=1
-            for i in 1 2 3 4 5; do
-              names=$(gh api \
-                -H "Accept: application/vnd.github+json" \
-                -H "X-GitHub-Api-Version: 2022-11-28" \
-                -H "User-Agent: BPDiary" \
-                "repos/${GITHUB_REPOSITORY}/releases/tags/asset-probe" \
-                --jq '[.assets[].name] | join(",")' || true)
-              echo "probe try ${i}: ${names}"
-              echo "::notice::probe try ${i} assets=${names}"
-              case ",${names}," in
-                *,probe.txt,*) ;;
-                *) probe_ok=0 ;;
-              esac
-              sleep 2
-            done
-          else
-            echo "::warning::не удалось создать пробный релиз"
-          fi
-          cleanup
-          echo "PROBE_OK=${probe_ok}" >> "$GITHUB_ENV"
-          echo "::notice::PROBE_OK=${probe_ok}"
-          curl -s -X POST \
-            -H "Authorization: Bearer ${GH_TOKEN}" \
-            -H "Accept: application/vnd.github+json" \
-            -H "Content-Type: application/json" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/comments" \
-            -d "{\"body\":\"PROBE_OK=${probe_ok}\"}" || true
-          exit 0
-
       - name: Установить JDK 17
         uses: actions/setup-java@v4
         with:
@@ -180,7 +130,7 @@ jobs:
           gradle_file=bp-diary-app/app/build.gradle
           code=$(sed -n 's/^[[:space:]]*versionCode[[:space:]]*[ =]*\([0-9][0-9]*\).*/\1/p' "$gradle_file" | head -1)
           name=$(sed -n 's/^[[:space:]]*versionName[[:space:]]*[ =]*"\([^"]*\)".*/\1/p' "$gradle_file" | head -1)
-          echo "::notice::versionCode=${code} versionName=${name} PROBE_OK=${PROBE_OK:-unset}"
+          echo "::notice::versionCode=${code} versionName=${name}"
           test -n "$code"
           test -n "$name"
           sha=$(sha256sum dist/BPDiary-release.apk | awk '{print $1}')
@@ -193,52 +143,56 @@ jobs:
             printf 'Автосборка %s (%s). Оба файла подписаны постоянным ключом bp-diary-app/keystore/bp-diary.keystore (alias bpdiary). Обновление ставится поверх без удаления данных. Для установки берите BPDiary-release.apk.\n' "$GITHUB_SHA" "$GITHUB_REF_NAME"
           } > dist/release-notes.txt
           repo="$GITHUB_REPOSITORY"
-          tag_names() {
-            gh api \
-              -H "Accept: application/vnd.github+json" \
-              -H "X-GitHub-Api-Version: 2022-11-28" \
-              -H "User-Agent: BPDiary" \
-              "repos/${repo}/releases/tags/latest-apk" \
-              --jq '[.assets[].name] | join(",")'
-          }
-          if [ "${PROBE_OK:-0}" != "1" ]; then
-            echo "::error::Проба не доказала, что метка держит файл. Релиз не трогаю, иначе телефон останется без APK."
-            tag_names || true
-            exit 1
-          fi
-          id=$(gh api "repos/${repo}/releases/tags/latest-apk" --jq .id || true)
-          if [ -n "$id" ] && [ "$id" != "null" ]; then
-            echo "удаляю старый релиз ${id}"
-            gh api -X DELETE "repos/${repo}/releases/${id}"
-          fi
-          gh api -X DELETE "repos/${repo}/git/refs/tags/latest-apk" || true
-          gh release create latest-apk \
+          id=$(gh api "repos/${repo}/releases/tags/latest-apk" --jq .id)
+          echo "::notice::release id=${id}"
+          # Сначала чужое имя: если заливка сломана, старые APK не трогаем.
+          # --clobber нельзя: он смотрит список по метке, а тот часто пуст, и команда падает сразу.
+          printf 'canary\n' > "dist/canary-${GITHUB_RUN_ID}.txt"
+          gh release upload latest-apk "dist/canary-${GITHUB_RUN_ID}.txt" --repo "$repo"
+          seen=$(gh api "repos/${repo}/releases/${id}/assets" --jq '[.[].name] | join(",")')
+          echo "::notice::after canary ${seen}"
+          case ",${seen}," in
+            *,"canary-${GITHUB_RUN_ID}.txt",*) ;;
+            *) echo "::error::заливка на релиз не дошла"; exit 1 ;;
+          esac
+          gh api "repos/${repo}/releases/${id}/assets" --jq '.[].id' | while read -r aid; do
+            [ -n "$aid" ] || continue
+            gh api -X DELETE "repos/${repo}/releases/assets/${aid}"
+          done
+          gh release upload latest-apk \
             dist/BPDiary-release.apk \
             dist/BPDiary-debug.apk \
             dist/version.json \
+            --repo "$repo"
+          gh release edit latest-apk \
             --title "Дневник АД — последний APK" \
             --notes-file dist/release-notes.txt \
             --repo "$repo"
-          echo "ждём сброса кэша метки"
-          sleep 75
-          ok=1
-          last=""
-          for i in 1 2 3 4 5; do
-            last=$(tag_names || true)
-            echo "::notice::tag try ${i} assets=${last}"
-            case ",${last}," in
-              *,BPDiary-release.apk,*) ;;
-              *) ok=0 ;;
-            esac
-            sleep 2
-          done
-          if [ "$ok" != 1 ]; then
-            echo "::error::Телефон не увидит APK: в ответе по метке нет файла (${last})"
-            curl -s -X POST               -H "Authorization: Bearer ${GH_TOKEN}"               -H "Accept: application/vnd.github+json"               -H "Content-Type: application/json"               "https://api.github.com/repos/${repo}/commits/${GITHUB_SHA}/comments"               -d "{\"body\":\"TAG_ASSETS=${last}\"}" || true
-            exit 1
-          fi
-          echo "::notice::телефон видит BPDiary-release.apk ${name}"
-          curl -s -X POST             -H "Authorization: Bearer ${GH_TOKEN}"             -H "Accept: application/vnd.github+json"             -H "Content-Type: application/json"             "https://api.github.com/repos/${repo}/commits/${GITHUB_SHA}/comments"             -d "{\"body\":\"TAG_OK=${name} ${last}\"}" || true
+          id_names=$(gh api "repos/${repo}/releases/${id}/assets" --jq '[.[].name] | join(",")')
+          body=$(gh api "repos/${repo}/releases/${id}" --jq '.body' | head -1)
+          tag_names=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            -H "User-Agent: BPDiary" \
+            "repos/${repo}/releases/tags/latest-apk" \
+            --jq '[.assets[].name] | join(",")' || true)
+          echo "::notice::id=${id_names}"
+          echo "::notice::tag=${tag_names}"
+          echo "::notice::body=${body}"
+          curl -s -X POST \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "Content-Type: application/json" \
+            "https://api.github.com/repos/${repo}/commits/${GITHUB_SHA}/comments" \
+            -d "{\"body\":\"ID=${id_names} TAG=${tag_names} BODY=${body}\"}" || true
+          case ",${id_names}," in
+            *,BPDiary-release.apk,*) ;;
+            *) echo "::error::APK нет на релизе"; exit 1 ;;
+          esac
+          case ",${tag_names}," in
+            *,BPDiary-release.apk,*) echo "::notice::телефон видит ${name}" ;;
+            *) echo "::error::Файл залит, но метка latest-apk его не показывает. Текущая версия на телефоне обновление не увидит."; exit 1 ;;
+          esac
 
       - name: Краткий итог
         run: |
