@@ -11,4 +11,14 @@
     <color name="warnText">#FFAB91</color>
     <color name="okBg">#1E3324</color>
     <color name="okText">#A5D6A7</color>
+
+    <!-- Красный «скорой» в тёмной теме: бордовый #8E0000 на тёмном фоне давал 1.5:1 и не читался -->
+    <color name="catCrisis">#FF8A80</color>
+
+    <!-- Карточка вызова скорой в тёмной теме: мягкий тёмно-красный фон и светлые рамки -->
+    <color name="sosBg">#3F2A2A</color>
+    <color name="sosStroke">#FF8A80</color>
+    <color name="sosInk">#FFB4AB</color>
+    <color name="sosFill">#C62828</color>
+    <color name="sosOnFill">#FFFFFF</color>
 </resources>

@@ -17,6 +17,13 @@
     <color name="catG3">#C62828</color>
     <color name="catCrisis">#8E0000</color>
 
+    <!-- Карточка вызова скорой. Ночные значения — в values-night/colors.xml -->
+    <color name="sosBg">#FDECEA</color>       <!-- фон блока скорой -->
+    <color name="sosStroke">#C62828</color>   <!-- рамка блока и второй кнопки -->
+    <color name="sosInk">#B3261E</color>      <!-- текст внутри блока скорой -->
+    <color name="sosFill">#C62828</color>     <!-- заливка кнопки вызова: белый текст читается в обеих темах -->
+    <color name="sosOnFill">#FFFFFF</color>
+
     <color name="warnBg">#FDECEA</color>
     <color name="warnText">#C62828</color>
     <color name="okBg">#E8F5E9</color>

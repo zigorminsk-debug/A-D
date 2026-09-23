@@ -9,40 +9,74 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnCall103"
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginStart="12dp"
             android:layout_marginTop="8dp"
             android:layout_marginEnd="12dp"
-            android:text="@string/sos_call"
-            android:textColor="@color/onPrimary"
-            android:textSize="18sp"
-            app:backgroundTint="@color/catCrisis" />
+            app:cardBackgroundColor="@color/sosBg"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="0dp"
+            app:strokeColor="@color/sosStroke"
+            app:strokeWidth="1.5dp">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnStroke"
-            style="@style/Widget.BPDiary.Button.Outlined"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_marginEnd="12dp"
-            android:text="@string/sos_stroke"
-            android:textColor="@color/catCrisis"
-            android:textSize="16sp"
-            app:strokeColor="@color/catCrisis" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="10dp">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnSosData"
-            style="@style/Widget.BPDiary.Button.Text"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_marginEnd="12dp"
-            android:text="@string/sos_data_btn"
-            android:textColor="@color/catCrisis"
-            android:textSize="15sp" />
+                <TextView
+                    android:id="@+id/tvSosTag"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif-medium"
+                    android:letterSpacing="0.08"
+                    android:text="@string/sos_tag"
+                    android:textAllCaps="true"
+                    android:textColor="@color/sosInk"
+                    android:textSize="11.5sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnCall103"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:minHeight="54dp"
+                    android:text="@string/sos_call"
+                    android:textColor="@color/sosOnFill"
+                    android:textSize="18sp"
+                    app:backgroundTint="@color/sosFill"
+                    app:cornerRadius="12dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnStroke"
+                    style="@style/Widget.BPDiary.Button.Outlined"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:gravity="center"
+                    android:lineSpacingExtra="1dp"
+                    android:maxLines="3"
+                    android:minHeight="48dp"
+                    android:text="@string/sos_stroke"
+                    android:textColor="@color/sosInk"
+                    android:textSize="14.5sp"
+                    app:cornerRadius="12dp"
+                    app:strokeColor="@color/sosStroke" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSosData"
+                    style="@style/Widget.BPDiary.Button.Text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="40dp"
+                    android:text="@string/sos_data_btn"
+                    android:textColor="@color/sosInk"
+                    android:textSize="13.5sp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
         <ScrollView
             android:id="@+id/headerScroll"

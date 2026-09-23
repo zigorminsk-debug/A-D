@@ -11,7 +11,7 @@
         android:layout_height="wrap_content"
         android:fontFamily="sans-serif-medium"
         android:text="@string/sos_speaking"
-        android:textColor="@color/catCrisis"
+        android:textColor="@color/sosInk"
         android:textSize="18sp" />
 
     <TextView
@@ -29,19 +29,23 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
+        android:minHeight="48dp"
         android:text="@string/sos_again"
-        android:textColor="@color/catCrisis"
+        android:textColor="@color/sosInk"
         android:textSize="16sp"
-        app:strokeColor="@color/catCrisis" />
+        app:cornerRadius="12dp"
+        app:strokeColor="@color/sosStroke" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnStrokeCall"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:minHeight="56dp"
         android:text="@string/sos_call"
-        android:textColor="@color/onPrimary"
+        android:textColor="@color/sosOnFill"
         android:textSize="18sp"
-        app:backgroundTint="@color/catCrisis" />
+        app:backgroundTint="@color/sosFill"
+        app:cornerRadius="12dp" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnStrokeClose"

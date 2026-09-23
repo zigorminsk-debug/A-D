@@ -278,6 +278,7 @@
     <string name="sos_phone">Номер скорой</string>
     <string name="sos_phone_bad">Номер скорой: от 2 до 15 цифр, можно с «+» в начале.</string>
     <string name="sos_stroke">Подозрение на инсульт или инфаркт: сказать адрес и позвонить</string>
+    <string name="sos_tag">Скорая помощь</string>
     <string name="sos_name">ФИО</string>
     <string name="sos_clinic">Номер поликлиники</string>
     <string name="sos_address">Адрес: город, улица, дом, квартира</string>

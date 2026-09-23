@@ -15,7 +15,7 @@
         android:layout_height="wrap_content"
         android:fontFamily="sans-serif-medium"
         android:text="@string/sos_data_title"
-        android:textColor="@color/catCrisis"
+        android:textColor="@color/sosInk"
         android:textSize="18sp" />
 
     <TextView
@@ -131,7 +131,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:lineSpacingExtra="2dp"
-        android:textColor="@color/catCrisis"
+        android:textColor="@color/sosInk"
         android:textSize="15sp" />
 
     <com.google.android.material.button.MaterialButton
@@ -140,20 +140,24 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
+        android:minHeight="48dp"
         android:text="@string/sos_place_check"
-        android:textColor="@color/catCrisis"
+        android:textColor="@color/sosInk"
         android:textSize="15sp"
-        app:strokeColor="@color/catCrisis" />
+        app:cornerRadius="12dp"
+        app:strokeColor="@color/sosStroke" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnSosSave"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
+        android:minHeight="54dp"
         android:text="@string/sos_save"
-        android:textColor="@color/onPrimary"
+        android:textColor="@color/sosOnFill"
         android:textSize="16sp"
-        app:backgroundTint="@color/catCrisis" />
+        app:backgroundTint="@color/sosFill"
+        app:cornerRadius="12dp" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnSosClose"
