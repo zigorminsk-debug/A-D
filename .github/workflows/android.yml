@@ -1,6 +1,7 @@
 name: Build APK (Дневник АД)
 
 on:
+  push:
   workflow_dispatch:
 
 permissions:
@@ -144,6 +145,18 @@ jobs:
           repo="$GITHUB_REPOSITORY"
           id=$(gh api "repos/${repo}/releases/tags/latest-apk" --jq .id)
           echo "::notice::release id=${id}"
+          # Не сносить уже залитую эту же версию: метка и так теряет список файлов,
+          # а лишнее удаление на несколько секунд оставляет телефон без APK.
+          have_body=$(gh api "repos/${repo}/releases/${id}" --jq '.body' | head -1)
+          have_names=$(gh api "repos/${repo}/releases/${id}/assets" --jq '[.[].name] | join(",")')
+          if [ "$have_body" = "versionCode: ${code}" ]; then
+            case ",${have_names}," in
+              *,BPDiary-release.apk,*)
+                echo "::notice::релиз уже содержит ${name}, файлы не трогаю"
+                exit 0
+                ;;
+            esac
+          fi
           # Сначала чужое имя: если заливка сломана, старые APK не трогаем.
           # --clobber нельзя: он смотрит список по метке, а тот часто пуст, и команда падает сразу.
           printf 'canary\n' > "dist/canary-${GITHUB_RUN_ID}.txt"
