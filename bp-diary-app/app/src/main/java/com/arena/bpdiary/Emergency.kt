@@ -142,7 +142,6 @@ object Emergency {
     }
 
     fun stop(ctx: Context) {
-        repeatsLeft = 0
         pending = null
         lastText = ""
         try {
