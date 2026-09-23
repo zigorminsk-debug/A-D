@@ -91,6 +91,13 @@
     <string name="about_body">Дневник измерений, график, таблетки и напоминания, справка и памятка. Записи хранятся только на этом телефоне. Интернет нужен лишь чтобы проверить и скачать обновление.</string>
     <string name="about_update_note">Если сборка новее, приложение скачает её и откроет установку. Android попросит подтвердить. Измерения и таблетки сохраняются. Для закрытого репозитория один раз нужен токен GitHub.</string>
     <string name="about_back">Назад</string>
+    <string name="font_title">Размер шрифта</string>
+    <string name="font_hint">Действует во всём приложении. Не меньше, чем в настройках телефона. Надписи переносятся, кнопки остаются на экране.</string>
+    <string name="font_sample">Так будет выглядеть текст в дневнике.</string>
+    <string name="font_normal">Обычный</string>
+    <string name="font_larger">Крупнее</string>
+    <string name="font_large">Крупный</string>
+    <string name="font_xlarge">Очень крупный</string>
     <string name="about_dev_title">Разработчик</string>
     <string name="about_dev_name">Zakharevich Igor</string>
     <string name="about_dev_call">Позвонить +375 29 337-14-12</string>

@@ -14,5 +14,9 @@
         <item name="android:navigationBarColor">@color/bg</item>
         <item name="android:windowBackground">@color/bg</item>
         <item name="android:forceDarkAllowed">false</item>
+        <item name="materialButtonStyle">@style/Widget.BPDiary.Button</item>
+        <item name="materialButtonOutlinedStyle">@style/Widget.BPDiary.Button.Outlined</item>
+        <item name="borderlessButtonStyle">@style/Widget.BPDiary.Button.Text</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.BPDiary.Dialog</item>
     </style>
 </resources>

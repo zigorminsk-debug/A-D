@@ -1,5 +1,6 @@
 package com.arena.bpdiary
 
+import android.content.Context
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
@@ -16,6 +17,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private var aboutReturnTab = R.id.action_diary
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(FontScale.wrap(newBase))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

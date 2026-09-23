@@ -29,7 +29,8 @@ class BpChartView @JvmOverloads constructor(
             RectF(0f, 0f, width.toFloat(), height.toFloat()),
             records,
             labels = true,
-            dark = night
+            dark = night,
+            fontScale = resources.displayMetrics.scaledDensity
         )
     }
 }

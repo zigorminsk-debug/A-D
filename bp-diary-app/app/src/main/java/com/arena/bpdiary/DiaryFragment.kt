@@ -122,7 +122,7 @@ class DiaryFragment : Fragment() {
                 }
                 else -> b.tvTodayMeds.visibility = View.GONE
             }
-            capTodayCard()
+            capHeader()
         } catch (_: Exception) {
             b.cardToday.visibility = View.GONE
         }
@@ -130,7 +130,9 @@ class DiaryFragment : Fragment() {
 
     /** Поля прокручиваются, кнопки «Дальше» и «Сохранить среднее» остаются на экране. */
     private fun capForm(scroll: View) {
-        val max = (resources.displayMetrics.heightPixels * 0.46f).toInt()
+        val scale = resources.configuration.fontScale
+        val fraction = if (scale >= 1.3f) 0.34f else 0.46f
+        val max = (resources.displayMetrics.heightPixels * fraction).toInt()
         val lp = scroll.layoutParams
         lp.height = ViewGroup.LayoutParams.WRAP_CONTENT
         scroll.layoutParams = lp
@@ -145,9 +147,14 @@ class DiaryFragment : Fragment() {
         }
     }
 
-    /** Иначе длинный список приёмов вытесняет измерения за край экрана. */
-    private fun capTodayCard() {
-        val scroll = b.todayScroll
+    /** Сводка и «Сегодня» прокручиваются, список измерений и «+» остаются на экране. */
+    private fun capHeader() {
+        val scroll = b.headerScroll
+        val scale = resources.configuration.fontScale
+        val fraction = if (scale >= 1.3f) 0.46f else 0.55f
+        val parentH = (scroll.parent as? View)?.height?.takeIf { it > 0 }
+            ?: resources.displayMetrics.heightPixels
+        val max = (parentH * fraction).toInt()
         val lp = scroll.layoutParams
         if (lp.height != ViewGroup.LayoutParams.WRAP_CONTENT) {
             lp.height = ViewGroup.LayoutParams.WRAP_CONTENT
@@ -156,7 +163,6 @@ class DiaryFragment : Fragment() {
         scroll.post {
             if (_b == null) return@post
             val content = scroll.getChildAt(0)?.measuredHeight ?: return@post
-            val max = (resources.displayMetrics.heightPixels * 0.46f).toInt()
             val target = content.coerceAtMost(max)
             if (target > 0 && scroll.layoutParams.height != target) {
                 scroll.layoutParams.height = target

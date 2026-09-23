@@ -77,6 +77,81 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:fontFamily="sans-serif-medium"
+                    android:text="@string/font_title"
+                    android:textColor="@color/primary"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:lineSpacingExtra="2dp"
+                    android:text="@string/font_hint"
+                    android:textColor="@color/gray"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:id="@+id/tvFontSample"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/font_sample"
+                    android:textColor="@color/textDark"
+                    android:textSize="16sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnFont0"
+                    style="@style/Widget.BPDiary.Button.Outlined"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/font_normal"
+                    android:textSize="15sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnFont1"
+                    style="@style/Widget.BPDiary.Button.Outlined"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/font_larger"
+                    android:textSize="15sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnFont2"
+                    style="@style/Widget.BPDiary.Button.Outlined"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/font_large"
+                    android:textSize="15sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnFont3"
+                    style="@style/Widget.BPDiary.Button.Outlined"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/font_xlarge"
+                    android:textSize="15sp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            app:cardBackgroundColor="@color/white"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="2dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="14dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif-medium"
                     android:text="@string/about_dev_title"
                     android:textColor="@color/primary"
                     android:textSize="16sp" />
@@ -93,7 +168,7 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnDevCall"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    style="@style/Widget.BPDiary.Button.Outlined"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
@@ -102,7 +177,7 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnDevMail"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    style="@style/Widget.BPDiary.Button.Outlined"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="@string/about_dev_mail"
@@ -156,7 +231,7 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnUpdateToken"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    style="@style/Widget.BPDiary.Button.Outlined"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="@string/update_token_btn"
@@ -166,7 +241,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnBack"
-            style="@style/Widget.Material3.Button.TextButton"
+            style="@style/Widget.BPDiary.Button.Text"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"

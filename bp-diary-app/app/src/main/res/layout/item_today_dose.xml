@@ -2,39 +2,39 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:gravity="center_vertical"
-    android:orientation="horizontal"
-    android:paddingTop="2dp">
+    android:orientation="vertical"
+    android:paddingTop="6dp">
 
     <TextView
         android:id="@+id/tvDose"
-        android:layout_width="0dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:ellipsize="end"
-        android:maxLines="2"
         android:textColor="@color/textDark"
         android:textSize="14sp" />
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnTaken"
-        style="@style/Widget.Material3.Button.OutlinedButton"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:minWidth="0dp"
-        android:minHeight="40dp"
-        android:paddingStart="10dp"
-        android:paddingEnd="10dp"
-        android:text="@string/today_taken"
-        android:textSize="12sp" />
+        android:orientation="horizontal">
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnSkip"
-        style="@style/Widget.Material3.Button.TextButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:minWidth="0dp"
-        android:minHeight="40dp"
-        android:text="@string/today_skip"
-        android:textSize="12sp" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnTaken"
+            style="@style/Widget.BPDiary.Button.Outlined"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:minWidth="0dp"
+            android:text="@string/today_taken"
+            android:textSize="14sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSkip"
+            style="@style/Widget.BPDiary.Button.Text"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:minWidth="0dp"
+            android:text="@string/today_skip"
+            android:textSize="14sp" />
+    </LinearLayout>
 </LinearLayout>

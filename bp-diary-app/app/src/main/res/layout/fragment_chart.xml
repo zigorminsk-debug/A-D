@@ -11,7 +11,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:selectionRequired="true"
-        app:singleLine="true"
+        app:singleLine="false"
         app:singleSelection="true">
 
         <com.google.android.material.chip.Chip
@@ -79,52 +79,67 @@
 
     <LinearLayout
         android:id="@+id/legend"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="6dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
+        android:orientation="vertical">
 
-        <View
-            android:layout_width="16dp"
-            android:layout_height="4dp"
-            android:background="@color/primary" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <View
+                android:layout_width="16dp"
+                android:layout_height="4dp"
+                android:background="@color/primary" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:layout_weight="1"
+                android:text="@string/legend_sys"
+                android:textColor="@color/gray"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <View
+                android:layout_width="16dp"
+                android:layout_height="4dp"
+                android:background="@color/secondary" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:layout_weight="1"
+                android:text="@string/legend_dia"
+                android:textColor="@color/gray"
+                android:textSize="13sp" />
+        </LinearLayout>
 
         <TextView
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="4dp"
-            android:text="@string/legend_sys"
-            android:textColor="@color/gray"
-            android:textSize="11sp" />
-
-        <View
-            android:layout_width="16dp"
-            android:layout_height="4dp"
-            android:layout_marginStart="12dp"
-            android:background="@color/secondary" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="4dp"
-            android:text="@string/legend_dia"
-            android:textColor="@color/gray"
-            android:textSize="11sp" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
+            android:layout_marginTop="2dp"
             android:text="@string/legend_target"
             android:textColor="@color/catHighNormal"
-            android:textSize="11sp"
+            android:textSize="13sp"
             android:textStyle="italic" />
     </LinearLayout>
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnChartPdf"
-        style="@style/Widget.Material3.Button.OutlinedButton"
+        style="@style/Widget.BPDiary.Button.Outlined"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"

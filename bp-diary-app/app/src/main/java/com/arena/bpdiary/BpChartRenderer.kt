@@ -27,7 +27,14 @@ object BpChartRenderer {
     const val GRID_D = 0xFF37465A.toInt()
     const val TEXT_D = 0xFF97A3B0.toInt()
 
-    fun draw(canvas: Canvas, area: RectF, recordsAsc: List<BpRecord>, labels: Boolean, dark: Boolean = false) {
+    fun draw(
+        canvas: Canvas,
+        area: RectF,
+        recordsAsc: List<BpRecord>,
+        labels: Boolean,
+        dark: Boolean = false,
+        fontScale: Float = 1f
+    ) {
         if (recordsAsc.isEmpty() || area.width() <= 0f || area.height() <= 0f) return
 
         val cSys = if (dark) NAVY_D else NAVY
@@ -35,10 +42,12 @@ object BpChartRenderer {
         val cGrid = if (dark) GRID_D else GRID
         val cText = if (dark) TEXT_D else TEXT
 
-        val padL = if (labels) 34f else 8f
-        val padR = 10f
-        val padT = 12f
-        val padB = if (labels) 24f else 8f
+        val scale = fontScale.coerceIn(0.85f, 6f)
+        val labelSize = (if (labels) 11f else 8f) * scale
+        val padL = if (labels) labelSize * 2.8f + 6f else 8f
+        val padR = if (labels) labelSize * 0.6f + 6f else 10f
+        val padT = if (labels) labelSize * 0.7f + 6f else 12f
+        val padB = if (labels) labelSize * 1.5f + 6f else 8f
         val chartW = area.width() - padL - padR
         val chartH = area.height() - padT - padB
         if (chartW <= 10f || chartH <= 10f) return
@@ -57,7 +66,7 @@ object BpChartRenderer {
             color = cGrid; strokeWidth = 0.8f; style = Paint.Style.STROKE
         }
         val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = cText; textSize = if (labels) 9f else 8f
+            color = cText; textSize = labelSize
         }
         val dashPaint = Paint(gridPaint).apply {
             color = TARGET; strokeWidth = 1.2f
@@ -69,7 +78,7 @@ object BpChartRenderer {
         while (v <= yMax) {
             val yy = y(v)
             canvas.drawLine(area.left + padL, yy, area.right - padR, yy, gridPaint)
-            if (labels) canvas.drawText(v.toString(), area.left + 2f, yy + 3f, labelPaint)
+            if (labels) canvas.drawText(v.toString(), area.left + 2f, yy + labelPaint.textSize * 0.32f, labelPaint)
             v += 20
         }
 
@@ -124,7 +133,7 @@ object BpChartRenderer {
                 labelPaint.textAlign = align
                 canvas.drawText(
                     df.format(Date(recordsAsc[idx].time)),
-                    x(idx), area.bottom - 6f, labelPaint
+                    x(idx), area.bottom - labelPaint.descent() - 2f, labelPaint
                 )
             }
             labelPaint.textAlign = Paint.Align.LEFT

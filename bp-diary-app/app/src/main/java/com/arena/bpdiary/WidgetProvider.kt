@@ -6,6 +6,7 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.util.TypedValue
 import android.widget.RemoteViews
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -31,6 +32,14 @@ class WidgetProvider : AppWidgetProvider() {
         fun buildViews(context: Context): RemoteViews {
             val last = Store(context).records().firstOrNull()
             val views = RemoteViews(context.packageName, R.layout.widget_bp)
+            val density = context.resources.displayMetrics.density
+            val applied = maxOf(
+                context.resources.configuration.fontScale,
+                FontScale.steps[FontScale.step(context)]
+            )
+            views.setTextViewTextSize(R.id.widgetTitle, TypedValue.COMPLEX_UNIT_PX, 12f * density * applied)
+            views.setTextViewTextSize(R.id.widgetBp, TypedValue.COMPLEX_UNIT_PX, 28f * density * applied)
+            views.setTextViewTextSize(R.id.widgetInfo, TypedValue.COMPLEX_UNIT_PX, 12f * density * applied)
             if (last == null) {
                 views.setTextViewText(R.id.widgetBp, context.getString(R.string.widget_empty_bp))
                 views.setTextViewText(R.id.widgetInfo, context.getString(R.string.widget_empty_info))

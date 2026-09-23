@@ -12,7 +12,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnAbout"
-            style="@style/Widget.Material3.Button.OutlinedButton"
+            style="@style/Widget.BPDiary.Button.Outlined"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/about_open"
@@ -59,30 +59,21 @@
                     android:textColor="@color/gray"
                     android:textSize="13sp" />
 
-                <LinearLayout
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnBackup"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:orientation="horizontal">
+                    android:text="@string/backup_save"
+                    android:textSize="14sp" />
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnBackup"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/backup_save"
-                        android:textSize="12sp" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnRestore"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
-                        android:layout_weight="1"
-                        android:text="@string/backup_restore"
-                        android:textSize="12sp" />
-                </LinearLayout>
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnRestore"
+                    style="@style/Widget.BPDiary.Button.Outlined"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/backup_restore"
+                    android:textSize="14sp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -135,7 +126,7 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnUpdateToken"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    style="@style/Widget.BPDiary.Button.Outlined"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="@string/update_token_btn"

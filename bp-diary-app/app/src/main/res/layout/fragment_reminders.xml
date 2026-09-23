@@ -43,12 +43,12 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnExactSettings"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="wrap_content"
+                    style="@style/Widget.BPDiary.Button.Outlined"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
                     android:text="@string/exact_btn"
-                    android:textSize="12sp" />
+                    android:textSize="14sp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

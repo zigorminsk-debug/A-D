@@ -14,5 +14,47 @@
         <item name="android:navigationBarColor">@color/bg</item>
         <item name="android:windowBackground">@color/bg</item>
         <item name="android:forceDarkAllowed">false</item>
+        <item name="materialButtonStyle">@style/Widget.BPDiary.Button</item>
+        <item name="materialButtonOutlinedStyle">@style/Widget.BPDiary.Button.Outlined</item>
+        <item name="borderlessButtonStyle">@style/Widget.BPDiary.Button.Text</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.BPDiary.Dialog</item>
+    </style>
+
+    <!-- Кнопки растут по высоте и переносят текст, а не обрезают его. -->
+    <style name="Widget.BPDiary.Button" parent="Widget.Material3.Button">
+        <item name="android:singleLine">false</item>
+        <item name="android:maxLines">3</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:insetTop">4dp</item>
+        <item name="android:insetBottom">4dp</item>
+        <item name="android:paddingTop">8dp</item>
+        <item name="android:paddingBottom">8dp</item>
+    </style>
+
+    <style name="Widget.BPDiary.Button.Outlined" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="android:singleLine">false</item>
+        <item name="android:maxLines">3</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:insetTop">4dp</item>
+        <item name="android:insetBottom">4dp</item>
+        <item name="android:paddingTop">8dp</item>
+        <item name="android:paddingBottom">8dp</item>
+    </style>
+
+    <style name="Widget.BPDiary.Button.Text" parent="Widget.Material3.Button.TextButton">
+        <item name="android:singleLine">false</item>
+        <item name="android:maxLines">3</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:insetTop">2dp</item>
+        <item name="android:insetBottom">2dp</item>
+    </style>
+
+    <style name="ThemeOverlay.BPDiary.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="buttonBarPositiveButtonStyle">@style/Widget.BPDiary.Button.Text</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Widget.BPDiary.Button.Text</item>
+        <item name="buttonBarNeutralButtonStyle">@style/Widget.BPDiary.Button.Text</item>
     </style>
 </resources>

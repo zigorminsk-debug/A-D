@@ -90,6 +90,7 @@ class BpBottomBar @JvmOverloads constructor(
             text = title
             gravity = Gravity.CENTER
             maxLines = 2
+            ellipsize = android.text.TextUtils.TruncateAt.END
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
                 topMargin = (2 * d).toInt()

@@ -9,6 +9,18 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
+        <ScrollView
+            android:id="@+id/headerScroll"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:overScrollMode="ifContentScrolls"
+            android:scrollbars="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -30,39 +42,30 @@
                     android:textColor="@color/textDark"
                     android:textSize="14sp" />
 
-                <LinearLayout
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnExport"
+                    style="@style/Widget.BPDiary.Button.Outlined"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:orientation="horizontal">
+                    android:text="@string/export_csv"
+                    android:textSize="14sp"
+                    app:icon="@drawable/ic_share"
+                    app:iconTint="@color/primary" />
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnExport"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/export_csv"
-                        android:textSize="12sp"
-                        app:icon="@drawable/ic_share"
-                        app:iconTint="@color/primary" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnPdf"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
-                        android:layout_weight="1"
-                        android:text="@string/export_pdf_btn"
-                        android:textSize="12sp"
-                        app:icon="@drawable/ic_chart"
-                        app:iconTint="@color/primary" />
-                </LinearLayout>
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPdf"
+                    style="@style/Widget.BPDiary.Button.Outlined"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/export_pdf_btn"
+                    android:textSize="14sp"
+                    app:icon="@drawable/ic_chart"
+                    app:iconTint="@color/primary" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnAbout"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    style="@style/Widget.BPDiary.Button.Outlined"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
@@ -71,7 +74,7 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnCheckUpdate"
-                    style="@style/Widget.Material3.Button.TextButton"
+                    style="@style/Widget.BPDiary.Button.Text"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="@string/update_check"
@@ -143,6 +146,9 @@
             </LinearLayout>
             </ScrollView>
         </com.google.android.material.card.MaterialCardView>
+
+        </LinearLayout>
+        </ScrollView>
 
         <TextView
             android:id="@+id/emptyState"

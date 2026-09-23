@@ -23,7 +23,7 @@
 
             <TextView
                 android:id="@+id/tvName"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:fontFamily="sans-serif-medium"
                 android:textColor="@color/textDark"
@@ -31,7 +31,7 @@
 
             <TextView
                 android:id="@+id/tvDose"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="1dp"
                 android:textColor="@color/gray"
@@ -39,7 +39,7 @@
 
             <TextView
                 android:id="@+id/tvTimes"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="3dp"
                 android:fontFamily="sans-serif-medium"
@@ -47,12 +47,12 @@
                 android:textSize="13sp" />
 
             <TextView
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="3dp"
                 android:text="@string/med_tap_hint"
                 android:textColor="@color/gray"
-                android:textSize="10sp" />
+                android:textSize="12sp" />
         </LinearLayout>
 
         <com.google.android.material.materialswitch.MaterialSwitch

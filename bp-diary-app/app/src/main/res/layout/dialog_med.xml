@@ -57,7 +57,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnAddTime"
-            style="@style/Widget.Material3.Button.OutlinedButton"
+            style="@style/Widget.BPDiary.Button.Outlined"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"

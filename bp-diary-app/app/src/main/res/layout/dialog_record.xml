@@ -21,7 +21,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnWhen"
-                style="@style/Widget.Material3.Button.OutlinedButton"
+                style="@style/Widget.BPDiary.Button.Outlined"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="@string/pick_date" />
@@ -166,34 +166,25 @@
             android:textSize="16sp"
             app:cornerRadius="12dp" />
 
-        <LinearLayout
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCancelPair"
+            style="@style/Widget.BPDiary.Button.Outlined"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
-            android:orientation="horizontal">
+            android:text="@string/cancel"
+            android:textSize="14sp"
+            app:cornerRadius="12dp" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnCancelPair"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/cancel"
-                android:textSize="14sp"
-                app:cornerRadius="12dp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnSingle"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_weight="1"
-                android:text="@string/pair_single"
-                android:textColor="@color/warnText"
-                android:textSize="14sp"
-                app:cornerRadius="12dp"
-                app:strokeColor="@color/warnText" />
-        </LinearLayout>
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSingle"
+            style="@style/Widget.BPDiary.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/pair_single"
+            android:textColor="@color/warnText"
+            android:textSize="14sp"
+            app:cornerRadius="12dp"
+            app:strokeColor="@color/warnText" />
     </LinearLayout>
 </LinearLayout>
