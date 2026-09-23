@@ -60,6 +60,13 @@ class DiaryFragment : Fragment() {
             afterCallPermission = null
             next?.invoke()
         }
+    private var afterLocation: (() -> Unit)? = null
+    private val locationPermission =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+            val next = afterLocation
+            afterLocation = null
+            next?.invoke()
+        }
 
     override fun onCreateView(i: LayoutInflater, c: ViewGroup?, s: Bundle?): View {
         _b = FragmentDiaryBinding.inflate(i, c, false)
@@ -73,7 +80,15 @@ class DiaryFragment : Fragment() {
         b.fabAdd.setOnClickListener { openPairDialog() }
         b.btnCall103.setOnClickListener { callAmbulance() }
         b.btnStroke.setOnClickListener { speakStrokeAndCall() }
-        b.btnSosData.setOnClickListener { Emergency.showDataDialog(this) }
+        b.btnSosData.setOnClickListener {
+            Emergency.showDataDialog(this, onLocate = { deliver ->
+                withLocation { Emergency.locateAndDescribe(requireContext(), deliver) }
+            })
+        }
+        if (PlaceFinder.shouldAsk(requireContext())) {
+            PlaceFinder.markAsked(requireContext())
+            locationPermission.launch(PlaceFinder.PERMISSIONS)
+        }
         b.btnExport.setOnClickListener { export() }
         b.btnPdf.setOnClickListener { exportPdf() }
         b.btnAbout.setOnClickListener { (activity as? MainActivity)?.openAbout() }
@@ -88,7 +103,22 @@ class DiaryFragment : Fragment() {
         if (_b != null) refresh()
     }
 
+    private fun withLocation(then: () -> Unit) {
+        if (!isAdded) return
+        if (PlaceFinder.hasPermission(requireContext())) {
+            then()
+        } else {
+            afterLocation = then
+            locationPermission.launch(PlaceFinder.PERMISSIONS)
+        }
+    }
+
     private fun callAmbulance() {
+        Emergency.watchPlace(this, stroke = false)
+        dialAmbulance()
+    }
+
+    private fun dialAmbulance() {
         val act = activity ?: return
         val go = {
             if (!Emergency.placeCall(act)) {
@@ -107,8 +137,9 @@ class DiaryFragment : Fragment() {
         if (!Emergency.hasAddress(requireContext())) {
             Toast.makeText(requireContext(), R.string.sos_need_address, Toast.LENGTH_LONG).show()
         }
-        Emergency.showAndSpeak(this, Emergency.script(requireContext())) { callAmbulance() }
-        callAmbulance()
+        Emergency.showAndSpeak(this, Emergency.script(requireContext())) { dialAmbulance() }
+        Emergency.watchPlace(this, stroke = true)
+        dialAmbulance()
     }
 
     private fun refresh() {

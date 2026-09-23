@@ -37,6 +37,13 @@ class MemoFragment : Fragment() {
             afterCallPermission = null
             next?.invoke()
         }
+    private var afterLocation: (() -> Unit)? = null
+    private val locationPermission =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+            val next = afterLocation
+            afterLocation = null
+            next?.invoke()
+        }
 
     override fun onCreateView(i: LayoutInflater, c: ViewGroup?, s: Bundle?): View {
         _b = FragmentMemoBinding.inflate(i, c, false)
@@ -44,14 +51,18 @@ class MemoFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        b.etSosName.setText(Emergency.patientName(requireContext()))
+        b.etSosClinic.setText(Emergency.clinic(requireContext()))
         b.etSosAddress.setText(Emergency.address(requireContext()))
         b.etSosExtra.setText(Emergency.extra(requireContext()))
-        refreshSosPreview()
+        b.tvSosPreview.text = Emergency.script(requireContext())
         val watch = object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable?) { refreshSosPreview() }
         }
+        b.etSosName.addTextChangedListener(watch)
+        b.etSosClinic.addTextChangedListener(watch)
         b.etSosAddress.addTextChangedListener(watch)
         b.etSosExtra.addTextChangedListener(watch)
         b.btnSosSave.setOnClickListener {
@@ -65,7 +76,9 @@ class MemoFragment : Fragment() {
         b.btnSosCall.setOnClickListener { callAmbulance() }
         b.btnSosStroke.setOnClickListener { speakStrokeAndCall() }
         b.btnSosData.setOnClickListener {
-            Emergency.showDataDialog(this) { reloadSos() }
+            Emergency.showDataDialog(this, onClosed = { reloadSos() }, onLocate = { deliver ->
+                withLocation { Emergency.locateAndDescribe(requireContext(), deliver) }
+            })
         }
         b.btnRedCall.setOnClickListener { callAmbulance() }
         b.btnRedStroke.setOnClickListener { speakStrokeAndCall() }
@@ -87,31 +100,45 @@ class MemoFragment : Fragment() {
 
     private fun reloadSos() {
         if (_b == null) return
+        b.etSosName.setText(Emergency.patientName(requireContext()))
+        b.etSosClinic.setText(Emergency.clinic(requireContext()))
         b.etSosAddress.setText(Emergency.address(requireContext()))
         b.etSosExtra.setText(Emergency.extra(requireContext()))
         b.tvSosPreview.text = Emergency.script(requireContext())
     }
 
     private fun persistSos() {
-        Emergency.save(
-            requireContext(),
-            b.etSosAddress.text?.toString().orEmpty(),
-            b.etSosExtra.text?.toString().orEmpty()
-        )
-        refreshSosPreview()
-    }
-
-    private fun refreshSosPreview() {
         if (_b == null) return
         Emergency.save(
             requireContext(),
+            b.etSosName.text?.toString().orEmpty(),
+            b.etSosClinic.text?.toString().orEmpty(),
             b.etSosAddress.text?.toString().orEmpty(),
             b.etSosExtra.text?.toString().orEmpty()
         )
         b.tvSosPreview.text = Emergency.script(requireContext())
     }
 
+    private fun refreshSosPreview() {
+        persistSos()
+    }
+
+    private fun withLocation(then: () -> Unit) {
+        if (!isAdded) return
+        if (PlaceFinder.hasPermission(requireContext())) {
+            then()
+        } else {
+            afterLocation = then
+            locationPermission.launch(PlaceFinder.PERMISSIONS)
+        }
+    }
+
     private fun callAmbulance() {
+        Emergency.watchPlace(this, stroke = false)
+        dialAmbulance()
+    }
+
+    private fun dialAmbulance() {
         val act = activity ?: return
         val go = {
             if (!Emergency.placeCall(act)) {
@@ -131,8 +158,9 @@ class MemoFragment : Fragment() {
         if (!Emergency.hasAddress(requireContext())) {
             Toast.makeText(requireContext(), R.string.sos_need_address, Toast.LENGTH_LONG).show()
         }
-        Emergency.showAndSpeak(this, Emergency.script(requireContext())) { callAmbulance() }
-        callAmbulance()
+        Emergency.showAndSpeak(this, Emergency.script(requireContext())) { dialAmbulance() }
+        Emergency.watchPlace(this, stroke = true)
+        dialAmbulance()
     }
 
     private fun writeBackup(uri: Uri) {

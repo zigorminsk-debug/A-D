@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
+import android.media.AudioDeviceInfo
 import android.media.AudioManager
 import android.net.Uri
 import android.os.Build
@@ -31,6 +32,8 @@ import java.util.Locale
 object Emergency {
 
     private const val PREFS = "bp_emergency"
+    private const val KEY_NAME = "name"
+    private const val KEY_CLINIC = "clinic"
     private const val KEY_ADDRESS = "address"
     private const val KEY_EXTRA = "extra"
     private const val NUMBER = "103"
@@ -41,29 +44,65 @@ object Emergency {
     private var voiceMissing = false
     private var pending: String? = null
     private var lastText = ""
+    private var placeGen = 0
+    private var speechView: android.widget.TextView? = null
+    private var restoreSpeaker: Boolean? = null
+    private var speakGen = 0
+    private var audioCtx: Context? = null
     private val savedVolumes = HashMap<Int, Int>()
+    private val releaseAudio = Runnable {
+        val ctx = audioCtx ?: return@Runnable
+        restore(ctx)
+    }
 
-    fun address(ctx: Context): String =
-        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_ADDRESS, "") ?: ""
+    fun patientName(ctx: Context): String = pref(ctx, KEY_NAME)
 
-    fun extra(ctx: Context): String =
-        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_EXTRA, "") ?: ""
+    fun clinic(ctx: Context): String = pref(ctx, KEY_CLINIC)
 
-    fun save(ctx: Context, address: String, extra: String) {
+    fun address(ctx: Context): String = pref(ctx, KEY_ADDRESS)
+
+    fun extra(ctx: Context): String = pref(ctx, KEY_EXTRA)
+
+    fun save(ctx: Context, name: String, clinic: String, address: String, extra: String) {
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
+            .putString(KEY_NAME, name.trim())
+            .putString(KEY_CLINIC, clinic.trim())
             .putString(KEY_ADDRESS, address.trim())
             .putString(KEY_EXTRA, extra.trim())
             .commit()
     }
 
+    private fun pref(ctx: Context, key: String): String =
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(key, "") ?: ""
+
     fun hasAddress(ctx: Context) = address(ctx).isNotBlank()
 
-    /** Текст, который телефон произнесёт. Адрес берётся из заранее сохранённой записи. */
-    fun script(ctx: Context): String {
-        val where = address(ctx).ifBlank { ctx.getString(R.string.sos_script_no_address) }
-        val more = extra(ctx).let { if (it.isBlank()) "" else ctx.getString(R.string.sos_script_extra, it) }
-        return ctx.getString(R.string.sos_script, where, more)
+    /** Текст, который телефон произнесёт. ФИО, поликлиника и адрес — из сохранённой записи. */
+    fun script(ctx: Context, place: String = ""): String =
+        scriptFrom(ctx, patientName(ctx), clinic(ctx), address(ctx), extra(ctx), place)
+
+    fun scriptFrom(
+        ctx: Context,
+        name: String,
+        clinic: String,
+        address: String,
+        extra: String,
+        place: String = ""
+    ): String {
+        val where = address.trim().ifBlank { ctx.getString(R.string.sos_script_no_address) }
+        val sb = StringBuilder()
+        sb.append(ctx.getString(R.string.sos_script_lead))
+        val who = name.trim()
+        if (who.isNotBlank()) sb.append(ctx.getString(R.string.sos_script_patient, who))
+        val poly = clinic.trim()
+        if (poly.isNotBlank()) sb.append(ctx.getString(R.string.sos_script_clinic, poly))
+        sb.append(ctx.getString(R.string.sos_script_address, where))
+        val more = extra.trim()
+        if (more.isNotBlank()) sb.append(ctx.getString(R.string.sos_script_extra, more))
+        if (place.isNotBlank()) sb.append(place.trim()).append(' ')
+        sb.append(ctx.getString(R.string.sos_script_repeat, where))
+        return sb.toString()
     }
 
     fun canCallDirectly(ctx: Context): Boolean =
@@ -90,18 +129,25 @@ object Emergency {
         }
     }
 
-    fun speak(ctx: Context, text: String) {
-        lastText = text
-        boost(ctx.applicationContext)
+    fun speak(ctx: Context, text: String, queued: Boolean = false) {
+        val spoken = text.trim()
+        if (spoken.isBlank()) return
+        lastText = if (queued && lastText.isNotBlank()) "$lastText $spoken" else spoken
+        speechView?.text = lastText
+        val app = ctx.applicationContext
+        audioCtx = app
+        val gen = ++speakGen
+        main.removeCallbacks(releaseAudio)
+        speaker(app, true)
+        boost(app)
         val existing = engine
         if (existing != null && ready) {
-            say(existing, text)
+            say(existing, spoken, if (queued) TextToSpeech.QUEUE_ADD else TextToSpeech.QUEUE_FLUSH, "stroke-$gen")
             return
         }
-        pending = text
+        pending = lastText
         if (existing != null) return
         voiceMissing = false
-        val app = ctx.applicationContext
         engine = TextToSpeech(app) { status ->
             if (engine == null) {
                 main.post { onEngineReady(app, status) }
@@ -132,21 +178,23 @@ object Emergency {
         tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) {}
             override fun onDone(utteranceId: String?) {
-                main.post { restore(ctx) }
+                main.post { scheduleRestore(utteranceId) }
             }
             @Deprecated("Deprecated in Java")
             override fun onError(utteranceId: String?) {
-                main.post { restore(ctx) }
+                main.post { scheduleRestore(utteranceId) }
             }
         })
         val queued = pending
         pending = null
-        if (!queued.isNullOrBlank() && !voiceMissing) say(tts, queued)
+        if (!queued.isNullOrBlank() && !voiceMissing) say(tts, queued, TextToSpeech.QUEUE_FLUSH, "stroke-$speakGen")
     }
 
     fun stop(ctx: Context) {
+        speakGen++
         pending = null
         lastText = ""
+        main.removeCallbacks(releaseAudio)
         try {
             engine?.stop()
         } catch (_: Exception) {
@@ -163,18 +211,28 @@ object Emergency {
         ready = false
     }
 
-    /** Окно, куда заранее вписывают адрес и приметы для звонка в скорую. */
-    fun showDataDialog(fragment: Fragment, onClosed: (() -> Unit)? = null) {
+    /** Окно, куда заранее вписывают ФИО, поликлинику и адрес для звонка в скорую. */
+    fun showDataDialog(
+        fragment: Fragment,
+        onClosed: (() -> Unit)? = null,
+        onLocate: ((String) -> Unit) -> Unit = { deliver ->
+            deliver(fragment.getString(R.string.sos_place_need_perm))
+        }
+    ) {
         val activity = fragment.activity ?: return
         val binding = DialogSosDataBinding.inflate(fragment.layoutInflater)
+        binding.etSosName.setText(patientName(activity))
+        binding.etSosClinic.setText(clinic(activity))
         binding.etSosAddress.setText(address(activity))
         binding.etSosExtra.setText(extra(activity))
         fun preview() {
-            val where = binding.etSosAddress.text?.toString()?.trim().orEmpty()
-                .ifBlank { activity.getString(R.string.sos_script_no_address) }
-            val more = binding.etSosExtra.text?.toString()?.trim().orEmpty()
-                .let { if (it.isBlank()) "" else activity.getString(R.string.sos_script_extra, it) }
-            binding.tvSosPreview.text = activity.getString(R.string.sos_script, where, more)
+            binding.tvSosPreview.text = scriptFrom(
+                activity,
+                binding.etSosName.text?.toString().orEmpty(),
+                binding.etSosClinic.text?.toString().orEmpty(),
+                binding.etSosAddress.text?.toString().orEmpty(),
+                binding.etSosExtra.text?.toString().orEmpty()
+            )
         }
         preview()
         val watch = object : TextWatcher {
@@ -182,15 +240,29 @@ object Emergency {
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable?) { preview() }
         }
+        binding.etSosName.addTextChangedListener(watch)
+        binding.etSosClinic.addTextChangedListener(watch)
         binding.etSosAddress.addTextChangedListener(watch)
         binding.etSosExtra.addTextChangedListener(watch)
         val dialog = MaterialAlertDialogBuilder(activity)
             .setView(binding.root)
             .setCancelable(true)
             .create()
+        binding.btnSosPlace.setOnClickListener {
+            save(
+                activity,
+                binding.etSosName.text?.toString().orEmpty(),
+                binding.etSosClinic.text?.toString().orEmpty(),
+                binding.etSosAddress.text?.toString().orEmpty(),
+                binding.etSosExtra.text?.toString().orEmpty()
+            )
+            onLocate { text -> binding.tvSosPlace.text = text }
+        }
         binding.btnSosSave.setOnClickListener {
             save(
                 activity,
+                binding.etSosName.text?.toString().orEmpty(),
+                binding.etSosClinic.text?.toString().orEmpty(),
                 binding.etSosAddress.text?.toString().orEmpty(),
                 binding.etSosExtra.text?.toString().orEmpty()
             )
@@ -202,22 +274,82 @@ object Emergency {
         dialog.show()
     }
 
+    /**
+     * После набора 103 сверяет GPS, Wi‑Fi и сотовую сеть с записанным адресом.
+     * Если место другое — произносит ближайшее здание и координаты.
+     */
+    fun watchPlace(fragment: Fragment, stroke: Boolean) {
+        val activity = fragment.activity ?: return
+        if (!PlaceFinder.hasPermission(activity)) return
+        if (!PlaceFinder.sensorsOn(activity)) {
+            if (stroke) speak(activity, activity.getString(R.string.sos_place_off), queued = true)
+            return
+        }
+        val my = ++placeGen
+        var said = ""
+        PlaceFinder.locate(activity) { fix ->
+            if (my != placeGen || fragment.activity == null) return@locate
+            if (fix == null) {
+                if (stroke) speak(activity, activity.getString(R.string.sos_script_no_fix), queued = true)
+                return@locate
+            }
+            PlaceFinder.describe(activity, fix, address(activity)) { report ->
+                if (my != placeGen || fragment.activity == null) return@describe
+                if (!report.shouldSpeak) {
+                    if (stroke) speechView?.text = script(activity)
+                    return@describe
+                }
+                if (report.speech == said) return@describe
+                said = report.speech
+                if (stroke && speechView != null) {
+                    speechView?.text = script(activity, report.speech)
+                    speak(activity, report.speech, queued = true)
+                } else if (fragment.isAdded) {
+                    showAndSpeak(fragment, report.speech) { }
+                }
+            }
+        }
+    }
+
+    fun locateAndDescribe(ctx: Context, onText: (String) -> Unit) {
+        if (!PlaceFinder.hasPermission(ctx)) {
+            onText(ctx.getString(R.string.sos_place_need_perm))
+            return
+        }
+        if (!PlaceFinder.sensorsOn(ctx)) {
+            onText(ctx.getString(R.string.sos_place_off))
+            return
+        }
+        onText(ctx.getString(R.string.sos_place_checking))
+        PlaceFinder.locate(ctx) { fix ->
+            if (fix == null) {
+                onText(ctx.getString(R.string.sos_script_no_fix))
+                return@locate
+            }
+            PlaceFinder.describe(ctx, fix, address(ctx)) { report -> onText(report.screen) }
+        }
+    }
+
     fun showAndSpeak(fragment: Fragment, text: String, onCall: () -> Unit) {
         val activity = fragment.activity ?: return
         val binding = DialogStrokeBinding.inflate(fragment.layoutInflater)
         binding.tvStrokeSpeech.text = text
+        speechView = binding.tvStrokeSpeech
         val dialog = MaterialAlertDialogBuilder(activity)
             .setView(binding.root)
             .setCancelable(true)
             .create()
         binding.btnStrokeAgain.setOnClickListener {
-            speak(activity, text)
+            speak(activity, binding.tvStrokeSpeech.text?.toString().orEmpty().ifBlank { text })
             if (voiceMissing) toast(activity, R.string.sos_no_voice)
         }
         binding.btnStrokeCall.setOnClickListener { onCall() }
         binding.btnStrokeClose.setOnClickListener {
             stop(activity)
             dialog.dismiss()
+        }
+        dialog.setOnDismissListener {
+            if (speechView === binding.tvStrokeSpeech) speechView = null
         }
         dialog.show()
         speak(activity, text)
@@ -227,10 +359,17 @@ object Emergency {
         }, 700)
     }
 
-    private fun say(tts: TextToSpeech, text: String) {
+    private fun say(tts: TextToSpeech, text: String, mode: Int, utteranceId: String) {
         val params = Bundle()
-        params.putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "stroke")
-        tts.speak(text, TextToSpeech.QUEUE_FLUSH, params, "stroke")
+        params.putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, utteranceId)
+        tts.speak(text, mode, params, utteranceId)
+    }
+
+    private fun scheduleRestore(utteranceId: String?) {
+        val gen = utteranceId?.substringAfter('-', "")?.toIntOrNull() ?: return
+        if (gen != speakGen) return
+        main.removeCallbacks(releaseAudio)
+        main.postDelayed(releaseAudio, 1_200)
     }
 
     private fun applyLanguage(tts: TextToSpeech): Boolean {
@@ -268,6 +407,40 @@ object Emergency {
             }
         }
         savedVolumes.clear()
+        speaker(ctx, false)
+    }
+
+    private fun speaker(ctx: Context, on: Boolean) {
+        val am = ctx.getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
+        if (on) {
+            if (restoreSpeaker == null) restoreSpeaker = am.isSpeakerphoneOn
+            try {
+                if (Build.VERSION.SDK_INT >= 31) {
+                    val device = am.availableCommunicationDevices.firstOrNull {
+                        it.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER
+                    }
+                    if (device != null) am.setCommunicationDevice(device)
+                }
+            } catch (_: Exception) {
+            }
+            try {
+                @Suppress("DEPRECATION")
+                am.isSpeakerphoneOn = true
+            } catch (_: Exception) {
+            }
+        } else {
+            val prev = restoreSpeaker ?: return
+            restoreSpeaker = null
+            try {
+                if (Build.VERSION.SDK_INT >= 31) am.clearCommunicationDevice()
+            } catch (_: Exception) {
+            }
+            try {
+                @Suppress("DEPRECATION")
+                am.isSpeakerphoneOn = prev
+            } catch (_: Exception) {
+            }
+        }
     }
 
     private fun vibrate(ctx: Context) {
