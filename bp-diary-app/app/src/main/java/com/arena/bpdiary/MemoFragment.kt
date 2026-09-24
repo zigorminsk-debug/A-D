@@ -81,6 +81,7 @@ class MemoFragment : Fragment() {
                 withLocation { Emergency.locateAndDescribe(requireContext(), deliver) }
             })
         }
+        b.btnSosVoice.setOnClickListener { Emergency.showVoiceDialog(this) }
         b.btnRedCall.setOnClickListener { callAmbulance() }
         b.btnRedStroke.setOnClickListener { speakStrokeAndCall() }
         b.btnAbout.setOnClickListener { (activity as? MainActivity)?.openAbout() }

@@ -148,6 +148,19 @@
         app:strokeColor="@color/sosStroke" />
 
     <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnSosVoice"
+        style="@style/Widget.BPDiary.Button.Outlined"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:minHeight="48dp"
+        android:text="@string/sos_voice_btn"
+        android:textColor="@color/sosInk"
+        android:textSize="15sp"
+        app:cornerRadius="12dp"
+        app:strokeColor="@color/sosStroke" />
+
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/btnSosSave"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

@@ -80,6 +80,16 @@
                     android:textColor="@color/sosInk"
                     android:textSize="13.5sp" />
 
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSosVoice"
+                    style="@style/Widget.BPDiary.Button.Text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="40dp"
+                    android:text="@string/sos_voice_btn"
+                    android:textColor="@color/sosInk"
+                    android:textSize="13.5sp" />
+
                 <com.google.android.material.textfield.TextInputLayout
                     style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                     android:layout_width="match_parent"

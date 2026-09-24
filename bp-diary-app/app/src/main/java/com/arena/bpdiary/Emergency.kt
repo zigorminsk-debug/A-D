@@ -6,6 +6,8 @@ import android.content.Intent
 import android.media.AudioAttributes
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -15,11 +17,15 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
+import android.speech.tts.Voice
 import android.text.Editable
 import android.text.TextWatcher
+import android.widget.RadioButton
+import android.widget.RadioGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.arena.bpdiary.databinding.DialogSosDataBinding
+import com.arena.bpdiary.databinding.DialogSosVoiceBinding
 import com.arena.bpdiary.databinding.DialogStrokeBinding
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.util.Locale
@@ -36,6 +42,8 @@ object Emergency {
     private const val KEY_ADDRESS = "address"
     private const val KEY_EXTRA = "extra"
     private const val KEY_PHONE = "phone"
+    private const val KEY_ENGINE = "voice_engine"
+    private const val KEY_VOICE = "voice_name"
     private const val DEFAULT_PHONE = "103"
 
     private val main = Handler(Looper.getMainLooper())
@@ -195,25 +203,48 @@ object Emergency {
         pending = lastText
         if (existing != null) return
         voiceMissing = false
-        engine = TextToSpeech(app) { status ->
+        val init = TextToSpeech.OnInitListener { status ->
             if (engine == null) {
                 main.post { onEngineReady(app, status) }
             } else {
                 onEngineReady(app, status)
             }
         }
+        // Сохранённый движок речи; пусто — системный по умолчанию.
+        engine = try {
+            TextToSpeech(app, init, enginePref(app).takeIf { it.isNotBlank() })
+        } catch (_: Exception) {
+            null
+        }
     }
 
     private fun onEngineReady(ctx: Context, status: Int) {
         val tts = engine ?: return
         if (status != TextToSpeech.SUCCESS) {
+            if (enginePref(ctx).isNotBlank()) {
+                // Выбранный движок пропал — возвращаемся к системному и пробуем снова.
+                ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(KEY_ENGINE).commit()
+                try {
+                    tts.shutdown()
+                } catch (_: Exception) {
+                }
+                engine = null
+                ready = false
+                val again = lastText
+                if (again.isNotBlank()) {
+                    speak(ctx, again)
+                    return
+                }
+            }
             voiceMissing = true
             pending = null
             return
         }
         ready = true
         voiceMissing = !applyLanguage(tts)
-        tts.setSpeechRate(0.85f)
+        if (!voiceMissing) applySavedVoice(ctx, tts)
+        // 0.95 — обычный темп русской речи; на 0.85 голос звучал роботом.
+        tts.setSpeechRate(0.95f)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             tts.setAudioAttributes(
                 AudioAttributes.Builder()
@@ -318,9 +349,286 @@ object Emergency {
             toast(activity, R.string.sos_saved)
             dialog.dismiss()
         }
+        binding.btnSosVoice.setOnClickListener {
+            persistDialog()
+            showVoiceDialog(fragment, onClosed = { onClosed?.invoke() })
+        }
         binding.btnSosClose.setOnClickListener { dialog.dismiss() }
         dialog.setOnDismissListener { onClosed?.invoke() }
         dialog.show()
+    }
+
+    /** Пакет выбранного движка речи: пусто — системный по умолчанию. */
+    private fun enginePref(ctx: Context): String = pref(ctx, KEY_ENGINE)
+
+    /** Имя выбранного голоса: пусто — подобрать самый живой автоматически. */
+    private fun voicePref(ctx: Context): String = pref(ctx, KEY_VOICE)
+
+    private class EngineRow(val label: String, val pkg: String)
+
+    /** Установленные движки речи: сначала «Речевые сервисы Google», он звучит живее прочих. */
+    private fun installedEngines(ctx: Context): MutableList<EngineRow> {
+        val rows = ArrayList<EngineRow>()
+        val seen = HashSet<String>()
+        try {
+            val pm = ctx.packageManager
+            // Тот же фильтр, что у TextToSpeech.Engine.INTENT_ACTION_TTS_SERVICE.
+            val intent = Intent("android.intent.action.TTS_SERVICE")
+            pm.queryIntentServices(intent, 0).forEach { info ->
+                val pkg = info.serviceInfo?.packageName ?: return@forEach
+                if (!seen.add(pkg)) return@forEach
+                val label = try {
+                    pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString()
+                } catch (_: Exception) {
+                    pkg
+                }
+                rows += EngineRow(label, pkg)
+            }
+        } catch (_: Exception) {
+        }
+        rows.sortWith(compareBy({ if (it.pkg == "com.google.android.tts") 0 else 1 }, { it.label }))
+        return rows
+    }
+
+    /** Сеть нужна только сетевым голосам: без неё они молчат. */
+    private fun online(ctx: Context): Boolean {
+        val cm = ctx.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return false
+        val net = cm.activeNetwork ?: return false
+        val caps = cm.getNetworkCapabilities(net) ?: return false
+        return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
+
+    /**
+     * Оценка «человечности» голоса по названию: нейросетевые и сетевые звучат живее локальных.
+     * Без интернета сетевой голос бесполезен, поэтому оценка снижается.
+     */
+    private fun voiceScore(ctx: Context, v: Voice): Int {
+        val n = v.name.lowercase(Locale.ROOT)
+        var score = 0
+        if (n.contains("wavenet")) score += 40
+        if (n.contains("neural")) score += 36
+        if (n.contains("network")) score += 30
+        if (n.contains("hd") || n.contains("premium")) score += 20
+        if (n.contains("standard")) score += 6
+        if (n.contains("local")) score -= 8
+        if (!v.isNetworkConnectionRequired) score += 5
+        if (v.isNetworkConnectionRequired && !online(ctx)) score -= 40
+        return score
+    }
+
+    private fun voiceKind(ctx: Context, v: Voice): String {
+        val n = v.name.lowercase(Locale.ROOT)
+        return when {
+            n.contains("wavenet") || n.contains("neural") -> ctx.getString(R.string.sos_voice_kind_neural)
+            n.contains("network") -> ctx.getString(R.string.sos_voice_kind_network)
+            n.contains("local") -> ctx.getString(R.string.sos_voice_kind_local)
+            else -> ""
+        }
+    }
+
+    /** Ставит сохранённый голос, а если его нет — самый живой русский из доступных. */
+    private fun applySavedVoice(ctx: Context, tts: TextToSpeech) {
+        try {
+            val ru = tts.voices?.filter { it.locale.language == "ru" } ?: return
+            if (ru.isEmpty()) return
+            val wanted = voicePref(ctx)
+            val pick = ru.firstOrNull { it.name == wanted } ?: ru.maxByOrNull { voiceScore(ctx, it) }
+            if (pick != null) tts.voice = pick
+        } catch (_: Exception) {
+        }
+    }
+
+    private fun voiceRow(group: RadioGroup, label: String, tag: String, checked: Boolean) {
+        val rb = RadioButton(group.context).apply {
+            text = label
+            this.tag = tag
+            isChecked = checked
+        }
+        group.addView(rb)
+    }
+
+    /** Открывает установку голосов: системный экран, при неудаче — Play Маркет. */
+    private fun openVoiceInstall(ctx: Context) {
+        val targets = listOf(
+            // TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA
+            Intent("android.speech.tts.engine.INSTALL_TTS_DATA"),
+            // Settings.ACTION_TTS_SETTINGS
+            Intent("com.android.settings.TTS_SETTINGS"),
+            Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=com.google.android.tts")),
+            Intent(
+                Intent.ACTION_VIEW,
+                Uri.parse("https://play.google.com/store/apps/details?id=com.google.android.tts")
+            )
+        )
+        for (intent in targets) {
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            try {
+                ctx.startActivity(intent)
+                return
+            } catch (_: Exception) {
+            }
+        }
+        toast(ctx, R.string.sos_voice_no_store)
+    }
+
+    private fun openVoiceSettings(ctx: Context) {
+        val intent = Intent("com.android.settings.TTS_SETTINGS").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        try {
+            ctx.startActivity(intent)
+        } catch (_: Exception) {
+            openVoiceInstall(ctx)
+        }
+    }
+
+    /** Русского голоса нет — предлагает поставить его одним нажатием. */
+    private fun askInstallVoice(fragment: Fragment) {
+        val activity = fragment.activity ?: return
+        MaterialAlertDialogBuilder(activity)
+            .setTitle(R.string.sos_voice_none_title)
+            .setMessage(R.string.sos_voice_none_msg)
+            .setPositiveButton(R.string.sos_voice_install) { _, _ -> openVoiceInstall(activity) }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    /**
+     * Выбор движка речи и голоса. Сетевые голоса Google звучат заметно живее локальных,
+     * поэтому их можно прослушать и закрепить кнопкой «Сохранить голос».
+     */
+    fun showVoiceDialog(fragment: Fragment, onClosed: (() -> Unit)? = null) {
+        val activity = fragment.activity ?: return
+        val binding = DialogSosVoiceBinding.inflate(fragment.layoutInflater)
+        var pickedEngine = enginePref(activity)
+        var pickedVoice = voicePref(activity)
+        var live: TextToSpeech? = null
+        var voicing = false
+
+        val dialog = MaterialAlertDialogBuilder(activity)
+            .setView(binding.root)
+            .setCancelable(true)
+            .create()
+
+        fun status(text: String) {
+            binding.tvVoiceStatus.text = text
+        }
+
+        fun applyVoice(tts: TextToSpeech, name: String) {
+            try {
+                val v = tts.voices?.firstOrNull { it.name == name } ?: return
+                tts.voice = v
+            } catch (_: Exception) {
+            }
+        }
+
+        fun listVoices(tts: TextToSpeech) {
+            binding.voiceList.setOnCheckedChangeListener(null)
+            binding.voiceList.removeAllViews()
+            val ru = try {
+                tts.voices?.filter { it.locale.language == "ru" } ?: emptyList()
+            } catch (_: Exception) {
+                emptyList()
+            }
+            val sorted = ru.sortedByDescending { voiceScore(activity, it) }
+            if (sorted.isEmpty()) {
+                voicing = false
+                pickedVoice = ""
+                status(activity.getString(R.string.sos_voice_none))
+                return
+            }
+            val best = sorted.first()
+            voiceRow(binding.voiceList, activity.getString(R.string.sos_voice_auto), "", pickedVoice.isBlank())
+            sorted.forEach { v ->
+                val kind = if (v.name == best.name) {
+                    activity.getString(R.string.sos_voice_best)
+                } else {
+                    voiceKind(activity, v)
+                }
+                val label = if (kind.isBlank()) v.name else v.name + " — " + kind
+                voiceRow(binding.voiceList, label, v.name, pickedVoice == v.name)
+            }
+            binding.voiceList.setOnCheckedChangeListener { group, id ->
+                val checked = group.findViewById<RadioButton>(id)
+                pickedVoice = (checked?.tag as? String).orEmpty()
+                val ttsNow = live
+                if (ttsNow != null && pickedVoice.isNotBlank()) applyVoice(ttsNow, pickedVoice)
+            }
+            voicing = true
+            applyVoice(tts, if (pickedVoice.isNotBlank()) pickedVoice else best.name)
+            status(activity.getString(R.string.sos_voice_ready))
+        }
+
+        fun openEngine(pkg: String) {
+            try {
+                live?.shutdown()
+            } catch (_: Exception) {
+            }
+            live = null
+            voicing = false
+            binding.voiceList.removeAllViews()
+            status(activity.getString(R.string.sos_voice_loading))
+            val init = TextToSpeech.OnInitListener { state ->
+                val tts = live
+                if (state == TextToSpeech.SUCCESS && tts != null && applyLanguage(tts)) {
+                    listVoices(tts)
+                } else {
+                    voicing = false
+                    status(activity.getString(R.string.sos_voice_none))
+                }
+            }
+            live = try {
+                if (pkg.isBlank()) TextToSpeech(activity, init) else TextToSpeech(activity, init, pkg)
+            } catch (_: Exception) {
+                null
+            }
+        }
+
+        voiceRow(
+            binding.voiceEngineList,
+            activity.getString(R.string.sos_voice_engine_system),
+            "",
+            pickedEngine.isBlank()
+        )
+        installedEngines(activity).forEach { e ->
+            voiceRow(binding.voiceEngineList, e.label, e.pkg, pickedEngine == e.pkg)
+        }
+        binding.voiceEngineList.setOnCheckedChangeListener { group, id ->
+            val checked = group.findViewById<RadioButton>(id)
+            pickedEngine = (checked?.tag as? String).orEmpty()
+            pickedVoice = ""
+            openEngine(pickedEngine)
+        }
+        binding.btnVoiceListen.setOnClickListener {
+            val tts = live
+            if (tts == null || !voicing) {
+                toast(activity, R.string.sos_voice_none)
+            } else {
+                say(tts, activity.getString(R.string.sos_voice_sample), TextToSpeech.QUEUE_FLUSH, "voice-test")
+            }
+        }
+        binding.btnVoiceSave.setOnClickListener {
+            activity.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .edit()
+                .putString(KEY_ENGINE, pickedEngine)
+                .putString(KEY_VOICE, pickedVoice)
+                .commit()
+            // Движок пересоздастся с новым голосом при следующем произнесении.
+            shutdown()
+            toast(activity, R.string.sos_voice_saved)
+            dialog.dismiss()
+        }
+        binding.btnVoiceInstall.setOnClickListener { openVoiceInstall(activity) }
+        binding.btnVoiceSettings.setOnClickListener { openVoiceSettings(activity) }
+        binding.btnVoiceClose.setOnClickListener { dialog.dismiss() }
+        dialog.setOnDismissListener {
+            try {
+                live?.shutdown()
+            } catch (_: Exception) {
+            }
+            live = null
+            onClosed?.invoke()
+        }
+        dialog.show()
+        openEngine(pickedEngine)
     }
 
     /**
@@ -397,7 +705,7 @@ object Emergency {
             .create()
         binding.btnStrokeAgain.setOnClickListener {
             speak(activity, binding.tvStrokeSpeech.text?.toString().orEmpty().ifBlank { text })
-            if (voiceMissing) toast(activity, R.string.sos_no_voice)
+            if (voiceMissing) askInstallVoice(fragment)
         }
         binding.btnStrokeCall.setOnClickListener { onCall() }
         binding.btnStrokeClose.setOnClickListener {
@@ -411,7 +719,7 @@ object Emergency {
         speak(activity, text)
         vibrate(activity)
         main.postDelayed({
-            if (voiceMissing) toast(activity, R.string.sos_no_voice)
+            if (voiceMissing) askInstallVoice(fragment)
         }, 700)
     }
 
