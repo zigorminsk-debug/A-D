@@ -23,9 +23,12 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.recyclerview.widget.ConcatAdapter
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.arena.bpdiary.databinding.DialogRecordBinding
 import com.arena.bpdiary.databinding.FragmentDiaryBinding
+import com.arena.bpdiary.databinding.ItemDiaryHeaderBinding
 import com.arena.bpdiary.databinding.ItemTodayDoseBinding
 import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.timepicker.MaterialTimePicker
@@ -40,12 +43,14 @@ import kotlin.math.roundToInt
 class DiaryFragment : Fragment() {
 
     private var _b: FragmentDiaryBinding? = null
+    private var _h: ItemDiaryHeaderBinding? = null
 
     companion object {
         private const val PAIR_GAP_MS = 60_000L
         private const val REST_MS = 5L * 60L * 1000L
     }
     private val b get() = _b!!
+    private val h get() = _h!!
     private val store by lazy { Store(requireContext()) }
     private lateinit var adapter: RecordsAdapter
     private val pairHandler = Handler(Looper.getMainLooper())
@@ -69,13 +74,14 @@ class DiaryFragment : Fragment() {
 
     override fun onCreateView(i: LayoutInflater, c: ViewGroup?, s: Bundle?): View {
         _b = FragmentDiaryBinding.inflate(i, c, false)
+        _h = ItemDiaryHeaderBinding.inflate(i, b.records, false)
         return b.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         adapter = RecordsAdapter(emptyList(), onClick = { openDialog(it) }, onLongClick = { confirmDelete(it) })
         b.records.layoutManager = LinearLayoutManager(requireContext())
-        b.records.adapter = adapter
+        b.records.adapter = ConcatAdapter(HeaderAdapter(h.root), adapter)
         b.fabAdd.setOnClickListener { openPairDialog() }
         b.btnCall103.setOnClickListener { callAmbulance() }
         b.btnStroke.setOnClickListener { speakStrokeAndCall() }
@@ -89,7 +95,7 @@ class DiaryFragment : Fragment() {
             PlaceFinder.markAsked(requireContext())
             locationPermission.launch(PlaceFinder.PERMISSIONS)
         }
-        b.btnPdf.setOnClickListener { exportPdf() }
+        h.btnPdf.setOnClickListener { exportPdf() }
         refresh()
     }
 
@@ -138,52 +144,51 @@ class DiaryFragment : Fragment() {
         try {
             val recs = store.records()
             adapter.submit(recs)
-            b.emptyState.visibility = if (recs.isEmpty()) View.VISIBLE else View.GONE
+            h.emptyState.visibility = if (recs.isEmpty()) View.VISIBLE else View.GONE
             updateStats(recs)
             updateToday(recs)
             refreshCallLabel()
             WidgetProvider.updateAll(requireContext())
         } catch (_: Exception) {
-            b.tvStats.text = getString(R.string.stats_empty)
-            b.cardToday.visibility = View.GONE
+            h.tvStats.text = getString(R.string.stats_empty)
+            h.cardToday.visibility = View.GONE
         }
     }
 
     private fun updateToday(recs: List<BpRecord>) {
         try {
             val day = TodayPlan.build(recs, store.meds(), store.logs())
-            b.cardToday.visibility = View.VISIBLE
-            bindPeriod(b.tvTodayMorning, day.morning, morning = true)
-            bindPeriod(b.tvTodayEvening, day.evening, morning = false)
-            b.todayDoses.removeAllViews()
+            h.cardToday.visibility = View.VISIBLE
+            bindPeriod(h.tvTodayMorning, day.morning, morning = true)
+            bindPeriod(h.tvTodayEvening, day.evening, morning = false)
+            h.todayDoses.removeAllViews()
             day.dueDoses.forEach { dose ->
-                val row = ItemTodayDoseBinding.inflate(layoutInflater, b.todayDoses, false)
+                val row = ItemTodayDoseBinding.inflate(layoutInflater, h.todayDoses, false)
                 val hm = String.format(Locale.getDefault(), "%02d:%02d", dose.hour, dose.minute)
                 val label = if (dose.dose.isBlank()) dose.name else "${dose.name}, ${dose.dose}"
                 row.tvDose.text = getString(R.string.today_dose_fmt, hm, label)
                 row.btnTaken.setOnClickListener { markDose(dose, "taken") }
                 row.btnSkip.setOnClickListener { markDose(dose, "skipped") }
-                b.todayDoses.addView(row.root)
+                h.todayDoses.addView(row.root)
             }
             when {
-                day.dueDoses.isNotEmpty() -> b.tvTodayMeds.visibility = View.GONE
+                day.dueDoses.isNotEmpty() -> h.tvTodayMeds.visibility = View.GONE
                 day.allDosesDone -> {
-                    b.tvTodayMeds.visibility = View.VISIBLE
-                    b.tvTodayMeds.text = getString(R.string.today_meds_done)
+                    h.tvTodayMeds.visibility = View.VISIBLE
+                    h.tvTodayMeds.text = getString(R.string.today_meds_done)
                 }
                 day.nextDoses.isNotEmpty() -> {
-                    b.tvTodayMeds.visibility = View.VISIBLE
-                    b.tvTodayMeds.text = day.nextDoses.joinToString("\n") { next ->
+                    h.tvTodayMeds.visibility = View.VISIBLE
+                    h.tvTodayMeds.text = day.nextDoses.joinToString("\n") { next ->
                         val hm = String.format(Locale.getDefault(), "%02d:%02d", next.hour, next.minute)
                         val label = if (next.dose.isBlank()) next.name else "${next.name}, ${next.dose}"
                         getString(R.string.today_next_dose, hm, label)
                     }
                 }
-                else -> b.tvTodayMeds.visibility = View.GONE
+                else -> h.tvTodayMeds.visibility = View.GONE
             }
-            capHeader()
         } catch (_: Exception) {
-            b.cardToday.visibility = View.GONE
+            h.cardToday.visibility = View.GONE
         }
     }
 
@@ -198,30 +203,6 @@ class DiaryFragment : Fragment() {
         scroll.post {
             if (!isAdded) return@post
             val content = (scroll as? ViewGroup)?.getChildAt(0)?.measuredHeight ?: return@post
-            val target = content.coerceAtMost(max)
-            if (target > 0 && scroll.layoutParams.height != target) {
-                scroll.layoutParams.height = target
-                scroll.requestLayout()
-            }
-        }
-    }
-
-    /** Сводка и «Сегодня» прокручиваются, список измерений и «+» остаются на экране. */
-    private fun capHeader() {
-        val scroll = b.headerScroll
-        val scale = resources.configuration.fontScale
-        val fraction = if (scale >= 1.3f) 0.46f else 0.55f
-        val parentH = (scroll.parent as? View)?.height?.takeIf { it > 0 }
-            ?: resources.displayMetrics.heightPixels
-        val max = (parentH * fraction).toInt()
-        val lp = scroll.layoutParams
-        if (lp.height != ViewGroup.LayoutParams.WRAP_CONTENT) {
-            lp.height = ViewGroup.LayoutParams.WRAP_CONTENT
-            scroll.layoutParams = lp
-        }
-        scroll.post {
-            if (_b == null) return@post
-            val content = scroll.getChildAt(0)?.measuredHeight ?: return@post
             val target = content.coerceAtMost(max)
             if (target > 0 && scroll.layoutParams.height != target) {
                 scroll.layoutParams.height = target
@@ -267,7 +248,7 @@ class DiaryFragment : Fragment() {
 
     private fun updateStats(recs: List<BpRecord>) {
         if (recs.isEmpty()) {
-            b.tvStats.text = getString(R.string.stats_empty)
+            h.tvStats.text = getString(R.string.stats_empty)
             return
         }
         val week = recs.filter { it.time >= System.currentTimeMillis() - 7L * 86_400_000 }
@@ -307,7 +288,7 @@ class DiaryFragment : Fragment() {
             last.sys, last.dia,
             BpClassifier.classify(requireContext(), last.sys, last.dia).label
         ))
-        b.tvStats.text = sb.toString()
+        h.tvStats.text = sb.toString()
     }
 
     /** Два замера с минутной паузой. В историю пишется среднее, оба числа остаются в заметке. */
@@ -881,5 +862,18 @@ class DiaryFragment : Fragment() {
         stopPairSession()
         super.onDestroyView()
         _b = null
+        _h = null
+    }
+
+    /** Шапка дневника — обычный элемент списка измерений: прокручивается вместе с записями. */
+    private class HeaderAdapter(private val view: View) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+
+        private val holder = object : RecyclerView.ViewHolder(view) {}
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder = holder
+
+        override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) = Unit
+
+        override fun getItemCount() = 1
     }
 }
