@@ -1,7 +1,6 @@
 package com.arena.bpdiary
 
 import android.content.Context
-import android.content.Intent
 import android.content.res.ColorStateList
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -90,12 +89,7 @@ class DiaryFragment : Fragment() {
             PlaceFinder.markAsked(requireContext())
             locationPermission.launch(PlaceFinder.PERMISSIONS)
         }
-        b.btnExport.setOnClickListener { export() }
         b.btnPdf.setOnClickListener { exportPdf() }
-        b.btnAbout.setOnClickListener { (activity as? MainActivity)?.openAbout() }
-        b.btnCheckUpdate.setOnClickListener {
-            (activity as? androidx.appcompat.app.AppCompatActivity)?.let { AppUpdater.start(it, manual = true) }
-        }
         refresh()
     }
 
@@ -870,16 +864,6 @@ class DiaryFragment : Fragment() {
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
-    }
-
-    private fun export() {
-        val csv = CsvExporter.build(requireContext(), store.records())
-        val i = Intent(Intent.ACTION_SEND).apply {
-            type = "text/plain"
-            putExtra(Intent.EXTRA_SUBJECT, getString(R.string.export_subject))
-            putExtra(Intent.EXTRA_TEXT, csv)
-        }
-        startActivity(Intent.createChooser(i, getString(R.string.export_chooser)))
     }
 
     private fun exportPdf() {

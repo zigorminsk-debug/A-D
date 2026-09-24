@@ -112,42 +112,23 @@
                     android:textSize="14sp" />
 
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnExport"
-                    style="@style/Widget.BPDiary.Button.Outlined"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/export_csv"
-                    android:textSize="14sp"
-                    app:icon="@drawable/ic_share"
-                    app:iconTint="@color/primary" />
-
-                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnPdf"
                     style="@style/Widget.BPDiary.Button.Outlined"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
                     android:text="@string/export_pdf_btn"
                     android:textSize="14sp"
                     app:icon="@drawable/ic_chart"
                     app:iconTint="@color/primary" />
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnAbout"
-                    style="@style/Widget.BPDiary.Button.Outlined"
+                <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/about_open"
-                    android:textSize="14sp" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnCheckUpdate"
-                    style="@style/Widget.BPDiary.Button.Text"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/update_check"
-                    android:textSize="14sp" />
+                    android:layout_marginTop="6dp"
+                    android:text="@string/export_moved_hint"
+                    android:textColor="@color/gray"
+                    android:textSize="12.5sp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

@@ -1,5 +1,6 @@
 package com.arena.bpdiary
 
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.text.Editable
@@ -83,6 +84,7 @@ class MemoFragment : Fragment() {
         b.btnRedCall.setOnClickListener { callAmbulance() }
         b.btnRedStroke.setOnClickListener { speakStrokeAndCall() }
         b.btnAbout.setOnClickListener { (activity as? MainActivity)?.openAbout() }
+        b.btnExportCsv.setOnClickListener { exportCsv() }
         b.btnBackup.setOnClickListener { saveBackup.launch("bp-diary-backup.json") }
         b.btnRestore.setOnClickListener { openBackup.launch(arrayOf("*/*")) }
         b.btnUpdate.setOnClickListener {
@@ -174,6 +176,22 @@ class MemoFragment : Fragment() {
         Emergency.showAndSpeak(this, Emergency.script(requireContext())) { dialAmbulance() }
         Emergency.watchPlace(this, stroke = true)
         dialAmbulance()
+    }
+
+    /** Тот же CSV, что раньше был на вкладке «Дневник»: все измерения одной таблицей. */
+    private fun exportCsv() {
+        val records = Store(requireContext()).records()
+        if (records.isEmpty()) {
+            Toast.makeText(requireContext(), R.string.pdf_no_data, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val csv = CsvExporter.build(requireContext(), records)
+        val i = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_SUBJECT, getString(R.string.export_subject))
+            putExtra(Intent.EXTRA_TEXT, csv)
+        }
+        startActivity(Intent.createChooser(i, getString(R.string.export_chooser)))
     }
 
     private fun writeBackup(uri: Uri) {

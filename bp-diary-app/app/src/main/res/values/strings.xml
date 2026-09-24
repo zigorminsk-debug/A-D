@@ -219,6 +219,9 @@
     <string name="err_range_pulse">От 25 до 250</string>
     <string name="err_sys_lt_dia">Верхнее должно быть больше нижнего</string>
     <string name="export_csv">Экспорт CSV</string>
+    <string name="export_moved_hint">Экспорт CSV, резервная копия и проверка обновления — на вкладке «Памятка».</string>
+    <string name="export_title">📤 Экспорт дневника</string>
+    <string name="export_desc">Все измерения одной таблицей CSV: дата, время, АД, пульс, заметка и категория. Отправьте файл врачу или сохраните себе. PDF-отчёт с лекарствами формируется кнопкой «PDF-отчёт» на вкладке «Дневник» и на «Графике».</string>
     <string name="export_subject">Дневник артериального давления</string>
     <string name="export_chooser">Отправить дневник врачу</string>
     <string name="delete_record_title">Удаление</string>
