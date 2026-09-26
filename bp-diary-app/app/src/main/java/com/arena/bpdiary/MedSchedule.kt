@@ -5,12 +5,12 @@ package com.arena.bpdiary
  *
  * Правила: приёмы распределяются равномерно от выбранного первого приёма,
  * интервал между ними — не больше 12 часов (два приёма в день = утро и вечер),
- * последний приём — не позже 22:00. Время округляется до 5 минут.
+ * последний приём — не позже 20:00. Время округляется до 5 минут.
  */
 object MedSchedule {
 
-    /** Последний приём — не позже 22:00. */
-    const val LAST_HOUR = 22
+    /** Последний приём — не позже 20:00. */
+    const val LAST_HOUR = 20
 
     /** Сколько приёмов в день можно задать. */
     const val MAX_PER_DAY = 6
@@ -18,9 +18,9 @@ object MedSchedule {
     /** Первый приём по умолчанию — 08:00. */
     const val FIRST_HOUR = 8
 
-    /** Раньше 5:00 и позже 21:00 первый приём задавать нельзя. */
+    /** Раньше 5:00 и позже 20:00 первый приём задавать нельзя. */
     const val MIN_FIRST_HOUR = 5
-    const val MAX_FIRST_HOUR = 21
+    const val MAX_FIRST_HOUR = 20
 
     private const val MAX_GAP_MIN = 12 * 60
 
@@ -30,12 +30,15 @@ object MedSchedule {
     /**
      * Времена приёма: список пар «час — минута», отсортированный по возрастанию.
      * Для одного приёма возвращает только первый приём.
+     * Последний приём — не позже 20:00, даже если первый выбран поздно.
      */
     fun slots(perDay: Int, firstHour: Int = FIRST_HOUR, firstMinute: Int = 0): List<Pair<Int, Int>> {
-        val count = perDay.coerceIn(1, MAX_PER_DAY)
-        val start = firstHour.coerceIn(MIN_FIRST_HOUR, MAX_FIRST_HOUR) * 60 +
-            firstMinute.coerceIn(0, 59)
         val end = LAST_HOUR * 60
+        val start = (firstHour.coerceIn(MIN_FIRST_HOUR, MAX_FIRST_HOUR) * 60 +
+            firstMinute.coerceIn(0, 59)).coerceAtMost(end)
+        // Поздний первый приём вмещает меньше приёмов: до 20:00 их просто не помещается.
+        val fits = ((end - start) / 5 + 1).coerceAtLeast(1)
+        val count = perDay.coerceIn(1, MAX_PER_DAY).coerceAtMost(fits)
         val result = ArrayList<Pair<Int, Int>>()
         if (count == 1) {
             result += start / 60 to start % 60
@@ -50,7 +53,7 @@ object MedSchedule {
         return result
     }
 
-    /** «08:00, 15:00, 22:00» — для подписи в окне препарата, карточке и PDF. */
+    /** «08:00, 14:00, 20:00» — для подписи в окне препарата, карточке и PDF. */
     fun describe(slots: List<Pair<Int, Int>>): String =
         slots.joinToString(", ") { String.format("%02d:%02d", it.first, it.second) }
 }

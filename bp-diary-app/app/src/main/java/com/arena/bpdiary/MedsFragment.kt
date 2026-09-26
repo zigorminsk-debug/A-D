@@ -171,7 +171,12 @@ class MedsFragment : Fragment() {
             d.tvMedCalc.text = if (slots.isEmpty()) {
                 getString(R.string.med_calc_hint)
             } else {
-                getString(R.string.med_calc_result, MedSchedule.describe(slots))
+                val main = getString(R.string.med_calc_result, MedSchedule.describe(slots))
+                if (perDay in 1..MedSchedule.MAX_PER_DAY && slots.size < perDay) {
+                    main + "\n" + getString(R.string.med_calc_reduced, slots.size)
+                } else {
+                    main
+                }
             }
         }
 
@@ -303,43 +308,57 @@ class MedsFragment : Fragment() {
                 d.etMedPerDay.error = getString(R.string.med_per_day_bad)
                 return@setOnClickListener
             }
-            if (typedPerDay.isNotEmpty() && times.isEmpty()) {
-                // Число приёмов задано, а времени нет — считаем его сами.
+            // Время считаем сами всегда, когда его не задали руками: препарат сохраняется
+            // с названием и дозировкой даже без единого времени приёма.
+            if (times.isEmpty()) {
+                if (perDay !in 1..MedSchedule.MAX_PER_DAY) perDay = 1
+                setPerDayField(perDay)
                 MedSchedule.slots(perDay, firstHour, firstMinute)
                     .forEach { times.add(MedTime(0, it.first, it.second)) }
                 renderTimes()
             }
-            if (times.isEmpty()) {
-                Toast.makeText(requireContext(), R.string.med_no_times, Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
+            val clock = times.map { it.hour to it.minute }
+            // Число приёмов совпадает с временами: если до 20:00 поместилось меньше, пишем фактическое.
+            val count = if (perDay in 1..MedSchedule.MAX_PER_DAY && clock.size == perDay) perDay else clock.size
+            val countLabel = resources.getQuantityString(R.plurals.med_per_day_short, count, count)
+            var saved = false
             if (edit == null) {
-                val med = store.addMed(
-                    name,
-                    dose,
-                    times.map { it.hour to it.minute },
-                    if (typedPerDay.isEmpty()) 0 else perDay
-                )
-                // Будильники ставятся на каждое рассчитанное время приёма.
-                ReminderScheduler.scheduleMedAll(requireContext(), med)
+                val med = store.addMed(name, dose, clock, count)
+                // Проверяем запись: молча терять препарат нельзя.
+                if (med.id != 0 && store.meds().any { it.id == med.id }) {
+                    // Будильники ставятся на каждое рассчитанное время приёма.
+                    ReminderScheduler.scheduleMedAll(requireContext(), med)
+                    saved = true
+                }
             } else {
-                ReminderScheduler.cancelMed(requireContext(), edit)
                 val reserved = HashSet<Int>()
                 val slots = times.map { t ->
                     val id = if (t.id != 0 && reserved.add(t.id)) t.id
                     else store.allocateId().also { reserved.add(it) }
                     t.copy(id = id)
                 }
-                val updated = edit.copy(
-                    name = name,
-                    dose = dose,
-                    times = slots,
-                    perDay = if (typedPerDay.isEmpty()) 0 else perDay
-                )
+                val updated = edit.copy(name = name, dose = dose, times = slots, perDay = count)
                 store.updateMed(updated)
-                ReminderScheduler.scheduleMedAll(requireContext(), updated)
+                val written = store.meds().firstOrNull { it.id == updated.id }
+                if (written != null && written.times.size == slots.size) {
+                    ReminderScheduler.cancelMed(requireContext(), edit)
+                    ReminderScheduler.scheduleMedAll(requireContext(), updated)
+                    saved = true
+                }
             }
+            if (!saved) {
+                Toast.makeText(requireContext(), R.string.med_save_fail, Toast.LENGTH_LONG).show()
+                return@setOnClickListener
+            }
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.med_saved_fmt, countLabel, MedSchedule.describe(clock)),
+                Toast.LENGTH_LONG
+            ).show()
+            // Показываем добавленный препарат: список сортируется по названию.
+            val position = store.meds().indexOfFirst { it.name == name }
             refresh()
+            if (edit == null && position >= 0) b.medsList.scrollToPosition(position)
             dialog.dismiss()
         }
     }

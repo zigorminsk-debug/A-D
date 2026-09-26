@@ -75,6 +75,18 @@ class Store(context: Context) {
     }
 
     /**
+     * Битую строку хранилища сохраняем в «…_broken» и продолжаем с пустого списка:
+     * иначе запись в этот раздел становится невозможной навсегда, и новые данные молча теряются.
+     */
+    private fun ensureWritable(key: String): Boolean {
+        if (readArray(key) != null) return true
+        val raw = sp.getString(key, null)
+        if (raw != null) sp.edit().putString(key + "_broken", raw).apply()
+        sp.edit().putString(key, "[]").commit()
+        return true
+    }
+
+    /**
      * Уникальный id будильника. Старая формула (currentTimeMillis shr 2) выдавала
      * один и тот же id всем слотам, созданным в одном вызове, и AlarmManager
      * оставлял только последний приём.
@@ -339,7 +351,7 @@ class Store(context: Context) {
         times: List<Pair<Int, Int>>,
         perDay: Int = 0
     ): Med {
-        if (readArray("meds") == null) {
+        if (!ensureWritable("meds")) {
             return Med(0, name, dose, emptyList(), false)
         }
         val med = Med(
@@ -356,12 +368,12 @@ class Store(context: Context) {
     }
 
     fun updateMed(med: Med) {
-        if (readArray("meds") == null) return
+        if (readArray("meds") == null) ensureWritable("meds")
         saveMeds(meds().map { if (it.id == med.id) med else it })
     }
 
     fun deleteMed(id: Int) {
-        if (readArray("meds") == null) return
+        if (readArray("meds") == null) ensureWritable("meds")
         saveMeds(meds().filter { it.id != id })
     }
 

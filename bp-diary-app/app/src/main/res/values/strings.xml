@@ -30,8 +30,12 @@
     <string name="med_per_day_bad">Укажите, сколько раз в день принимать: от 1 до 6</string>
     <string name="med_first_time">Первый приём: %1$s</string>
     <string name="med_first_time_title">Первый приём</string>
-    <string name="med_first_time_bad">Первый приём — между 5:00 и 21:00</string>
-    <string name="med_calc_hint">Укажите количество приёмов в день — время рассчитается само: равномерно, последний приём не позже 22:00</string>
+    <string name="med_saved_fmt">Сохранено: %1$s, приём — %2$s</string>
+    <string name="med_saved_short">Препарат сохранён</string>
+    <string name="med_save_fail">Не удалось сохранить препарат. Попробуйте ещё раз.</string>
+    <string name="med_calc_reduced">Приёмов до 20:00 помещается только %1$d — время сокращено</string>
+    <string name="med_first_time_bad">Первый приём — между 5:00 и 20:00</string>
+    <string name="med_calc_hint">Укажите количество приёмов в день — время рассчитается само: равномерно, последний приём не позже 20:00</string>
     <string name="med_calc_result">Время приёма: %1$s</string>
     <string name="med_times_label">Времена приёма (нажмите на время, чтобы убрать)</string>
     <string name="med_add_time">+ Время приёма</string>
