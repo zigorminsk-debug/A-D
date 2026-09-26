@@ -355,7 +355,7 @@ class RecordEditFragment : Fragment() {
             preview()
             b.tvTimer.visibility = View.VISIBLE
             b.tvWait.visibility = View.VISIBLE
-            b.tvWait.text = getString(R.string.pair_wait_hint)
+            b.tvWait.text = getString(R.string.pair_wait)
             showNumbers(false)
             showActions()
 
@@ -443,10 +443,10 @@ class RecordEditFragment : Fragment() {
         hideKeyboard()
         if (isPairMode && firstReading != null) {
             com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-                .setTitle(R.string.pair_cancel_title)
-                .setMessage(R.string.pair_cancel_msg)
-                .setPositiveButton(R.string.pair_cancel_stay, null)
-                .setNegativeButton(R.string.pair_cancel_leave) { _, _ ->
+                .setTitle(R.string.pair_leave_title)
+                .setMessage(R.string.pair_leave_msg)
+                .setPositiveButton(R.string.pair_stay, null)
+                .setNegativeButton(R.string.pair_leave) { _, _ ->
                     stopPairSession()
                     (activity as? MainActivity)?.closeRecordEdit()
                 }
