@@ -14,10 +14,14 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.recyclerview.widget.ConcatAdapter
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.arena.bpdiary.databinding.DialogMedBinding
 import com.arena.bpdiary.databinding.FragmentMedsBinding
+import com.arena.bpdiary.databinding.IncludeMedsHeaderBinding
+import com.arena.bpdiary.databinding.IncludeMedsHistoryBinding
+import com.arena.bpdiary.databinding.ItemMedlogBinding
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.timepicker.MaterialTimePicker
 import com.google.android.material.timepicker.TimeFormat
@@ -28,13 +32,20 @@ import java.util.Locale
 class MedsFragment : Fragment() {
 
     private var _b: FragmentMedsBinding? = null
+    private var _head: IncludeMedsHeaderBinding? = null
+    private var _tail: IncludeMedsHistoryBinding? = null
     private val b get() = _b!!
+    private val head get() = _head!!
+    private val tail get() = _tail!!
     private val store by lazy { Store(requireContext()) }
     private lateinit var medsAdapter: MedsAdapter
-    private lateinit var logsAdapter: LogsAdapter
 
     override fun onCreateView(i: LayoutInflater, c: ViewGroup?, s: Bundle?): View {
         _b = FragmentMedsBinding.inflate(i, c, false)
+        // Раздуваем без родителя-списка: RecyclerView не умеет считать LayoutParams
+        // до назначения LayoutManager и падал бы с IllegalStateException.
+        _head = IncludeMedsHeaderBinding.inflate(i)
+        _tail = IncludeMedsHistoryBinding.inflate(i)
         return b.root
     }
 
@@ -51,22 +62,16 @@ class MedsFragment : Fragment() {
             onTap = { med -> showActions(med) },
             onLong = { med -> confirmDelete(med) }
         )
-        b.medsList.layoutManager = LinearLayoutManager(requireContext())
-        b.medsList.adapter = medsAdapter
-        b.medsList.isNestedScrollingEnabled = false
-
-        logsAdapter = LogsAdapter(
-            items = emptyList(),
-            onLong = { log ->
-            store.deleteLog(log.id)
-            refresh()
-        })
-        b.logsList.layoutManager = LinearLayoutManager(requireContext())
-        b.logsList.adapter = logsAdapter
-        b.logsList.isNestedScrollingEnabled = false
+        b.medsScroll.layoutManager = LinearLayoutManager(requireContext())
+        // Шапка, препараты и история — части одного списка: он прокручивается целиком.
+        b.medsScroll.adapter = ConcatAdapter(
+            SingleViewAdapter(head.root),
+            medsAdapter,
+            SingleViewAdapter(tail.root)
+        )
 
         b.fabAddMed.setOnClickListener { showMedDialog(null) }
-        b.btnTestSignal.setOnClickListener {
+        head.btnTestSignal.setOnClickListener {
             askNotificationPermission()
             val silent = Notifications.playMedSignal(requireContext())
             if (silent) {
@@ -97,13 +102,22 @@ class MedsFragment : Fragment() {
     private fun refresh() {
         val meds = store.meds()
         medsAdapter.submit(meds)
-        b.emptyMeds.visibility = if (meds.isEmpty()) View.VISIBLE else View.GONE
+        head.emptyMeds.visibility = if (meds.isEmpty()) View.VISIBLE else View.GONE
 
         val logs = store.logs().take(20)
-        logsAdapter.submit(logs)
-        b.logsList.visibility = if (logs.isEmpty()) View.GONE else View.VISIBLE
-        b.historyTitle.visibility = b.logsList.visibility
-        b.emptyLogs.visibility = if (logs.isEmpty()) View.VISIBLE else View.GONE
+        tail.logsContainer.removeAllViews()
+        logs.forEach { log ->
+            val row = ItemMedlogBinding.inflate(layoutInflater, tail.logsContainer, false)
+            bindMedLog(row, log)
+            row.root.setOnLongClickListener {
+                store.deleteLog(log.id)
+                refresh()
+                true
+            }
+            tail.logsContainer.addView(row.root)
+        }
+        tail.historyTitle.visibility = if (logs.isEmpty()) View.GONE else View.VISIBLE
+        tail.emptyLogs.visibility = if (logs.isEmpty()) View.VISIBLE else View.GONE
     }
 
     private fun showActions(med: Med) {
@@ -358,7 +372,8 @@ class MedsFragment : Fragment() {
             // Показываем добавленный препарат: список сортируется по названию.
             val position = store.meds().indexOfFirst { it.name == name }
             refresh()
-            if (edit == null && position >= 0) b.medsList.scrollToPosition(position)
+            // +1 — шапка списка, она тоже элемент.
+            if (position >= 0) b.medsScroll.scrollToPosition(position + 1)
             dialog.dismiss()
         }
     }
@@ -366,6 +381,8 @@ class MedsFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _b = null
+        _head = null
+        _tail = null
     }
 }
 
@@ -423,41 +440,30 @@ class MedsAdapter(
     }
 }
 
-class LogsAdapter(
-    private var items: List<MedLog>,
-    private val onLong: (MedLog) -> Unit
-) : RecyclerView.Adapter<LogsAdapter.VH>() {
+/** Строка истории приёмов: используется и в списке «Таблеток». */
+private val logDateFormat = SimpleDateFormat("dd.MM HH:mm", Locale.getDefault())
 
-    class VH(val b: com.arena.bpdiary.databinding.ItemMedlogBinding) : RecyclerView.ViewHolder(b.root)
-
-    private val df = SimpleDateFormat("dd.MM HH:mm", Locale.getDefault())
-
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
-        val b = com.arena.bpdiary.databinding.ItemMedlogBinding.inflate(
-            LayoutInflater.from(parent.context), parent, false
-        )
-        return VH(b)
+private fun bindMedLog(row: ItemMedlogBinding, log: MedLog) {
+    val ctx = row.root.context
+    row.tvWhen.text = logDateFormat.format(Date(log.time))
+    row.tvWhat.text = if (log.dose.isBlank()) log.medName else "${log.medName} (${log.dose})"
+    if (log.status == "taken") {
+        row.tvStatus.text = ctx.getString(R.string.log_taken_fmt)
+        row.tvStatus.setTextColor(ContextCompat.getColor(ctx, R.color.catOptimal))
+    } else {
+        row.tvStatus.text = ctx.getString(R.string.log_skipped_fmt)
+        row.tvStatus.setTextColor(ContextCompat.getColor(ctx, R.color.catCrisis))
     }
+}
 
-    override fun getItemCount() = items.size
+/** Один элемент списка — готовое представление: шапка или блок истории. */
+private class SingleViewAdapter(private val view: View) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
-    override fun onBindViewHolder(h: VH, position: Int) {
-        val l = items[position]
-        val ctx = h.b.root.context
-        h.b.tvWhen.text = df.format(Date(l.time))
-        h.b.tvWhat.text = if (l.dose.isBlank()) l.medName else "${l.medName} (${l.dose})"
-        if (l.status == "taken") {
-            h.b.tvStatus.text = ctx.getString(R.string.log_taken_fmt)
-            h.b.tvStatus.setTextColor(ContextCompat.getColor(ctx, R.color.catOptimal))
-        } else {
-            h.b.tvStatus.text = ctx.getString(R.string.log_skipped_fmt)
-            h.b.tvStatus.setTextColor(ContextCompat.getColor(ctx, R.color.catCrisis))
-        }
-        h.b.root.setOnLongClickListener { onLong(l); true }
-    }
+    private val holder = object : RecyclerView.ViewHolder(view) {}
 
-    fun submit(list: List<MedLog>) {
-        items = list
-        notifyDataSetChanged()
-    }
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder = holder
+
+    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) = Unit
+
+    override fun getItemCount() = 1
 }

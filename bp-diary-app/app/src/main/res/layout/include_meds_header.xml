@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Шапка списка «Таблетки»: подсказка о сигнале, проверка сигнала и пустой список. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:lineSpacingExtra="2dp"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="12dp"
+        android:text="@string/med_signal_hint"
+        android:textColor="@color/textDark"
+        android:textSize="14sp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnTestSignal"
+        style="@style/Widget.BPDiary.Button.Outlined"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="8dp"
+        android:text="@string/med_signal_test"
+        android:textSize="14sp" />
+
+    <TextView
+        android:id="@+id/emptyMeds"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:padding="32dp"
+        android:text="@string/no_meds"
+        android:textColor="@color/gray"
+        android:textSize="15sp" />
+</LinearLayout>
