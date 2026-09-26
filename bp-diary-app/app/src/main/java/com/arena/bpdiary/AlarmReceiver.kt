@@ -66,6 +66,19 @@ class AlarmReceiver : BroadcastReceiver() {
         } catch (_: Exception) {
             // нет разрешения на уведомления или сбой прошивки — не закрываем приложение
         }
+        // Удерживаем WakeLock на несколько секунд, чтобы устройство успело зажечь экран и показать Activity
+        try {
+            val pm = context.getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager
+            val wl = pm?.newWakeLock(
+                android.os.PowerManager.SCREEN_BRIGHT_WAKE_LOCK or
+                    android.os.PowerManager.ACQUIRE_CAUSES_WAKEUP or
+                    android.os.PowerManager.ON_AFTER_RELEASE,
+                "bpdiary:alarm_wake"
+            )
+            wl?.acquire(3500L)
+        } catch (_: Exception) {
+        }
+
         if (hold) {
             Handler(Looper.getMainLooper()).postDelayed({ pending.finish() }, 2200)
         } else {

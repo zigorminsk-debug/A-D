@@ -390,4 +390,5 @@
     <string name="test_banner_opt_med">Приём лекарства (тестовый препарат)</string>
     <string name="test_med_sample_name">Лозартан</string>
     <string name="test_med_sample_dose">50 мг</string>
+<string name="test_banner_scheduled_toast">Через 10 секунд сработает напоминание. Заблокируйте телефон, чтобы проверить!</string>
 </resources>

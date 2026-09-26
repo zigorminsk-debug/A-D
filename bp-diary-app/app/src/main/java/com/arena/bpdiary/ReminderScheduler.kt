@@ -38,20 +38,41 @@ object ReminderScheduler {
             set(java.util.Calendar.MILLISECOND, 0)
             if (before(java.util.Calendar.getInstance())) add(java.util.Calendar.DAY_OF_YEAR, 1)
         }
+        val triggerTime = cal.timeInMillis
         val pending = pi(ctx, alarmId, intent)
+        setAlarmGuaranteed(ctx, am, triggerTime, pending)
+    }
+
+    fun setAlarmGuaranteed(ctx: Context, am: AlarmManager, triggerTime: Long, pending: PendingIntent) {
+        // 1. Приоритет: setAlarmClock — высший системный приоритет будильника,
+        // гарантированно будит заблокированный телефон без Doze-задержек.
+        try {
+            val showIntent = Intent(ctx, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+            val showPi = PendingIntent.getActivity(
+                ctx, 0, showIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            val info = AlarmManager.AlarmClockInfo(triggerTime, showPi)
+            am.setAlarmClock(info, pending)
+            return
+        } catch (_: Exception) {
+        }
+
+        // 2. Fallback: setExactAndAllowWhileIdle
         try {
             val exact = Build.VERSION.SDK_INT < 31 || am.canScheduleExactAlarms()
             if (exact) {
-                am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, cal.timeInMillis, pending)
-            } else {
-                am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, cal.timeInMillis, pending)
+                am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pending)
+                return
             }
-        } catch (_: SecurityException) {
-            try {
-                am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, cal.timeInMillis, pending)
-            } catch (_: Exception) {
-                // прошивка запретила будильник — приложение должно остаться открытым
-            }
+        } catch (_: Exception) {
+        }
+
+        // 3. Fallback: setAndAllowWhileIdle
+        try {
+            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pending)
         } catch (_: Exception) {
         }
     }
@@ -146,23 +167,34 @@ object ReminderScheduler {
             putExtra(EXTRA_DOSE, dose)
             putExtra(EXTRA_SNOOZE, true)
         }
-        // Уникальный request code для отложенного будильника, чтобы не затереть регулярный суточный
         val snoozeAlarmId = if (id != 0) -kotlin.math.abs(id) else -9999
         val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         val pending = PendingIntent.getBroadcast(ctx, snoozeAlarmId, intent, flags)
-        try {
-            val exact = Build.VERSION.SDK_INT < 31 || am.canScheduleExactAlarms()
-            if (exact) {
-                am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pending)
-            } else {
-                am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pending)
-            }
-        } catch (_: Exception) {
-            try {
-                am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pending)
-            } catch (_: Exception) {
-            }
-        }
+        setAlarmGuaranteed(ctx, am, triggerTime, pending)
     }
 
+    fun scheduleTest(
+        ctx: Context,
+        type: String,
+        delaySeconds: Int = 10,
+        name: String = "",
+        dose: String = ""
+    ) {
+        val am = ctx.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val triggerTime = System.currentTimeMillis() + delaySeconds * 1000L
+        val cal = java.util.Calendar.getInstance().apply { timeInMillis = triggerTime }
+        val testId = if (type == TYPE_MED) 99901 else 99902
+        val intent = Intent(ctx, AlarmReceiver::class.java).apply {
+            putExtra(EXTRA_TYPE, type)
+            putExtra(EXTRA_ID, testId)
+            putExtra(EXTRA_HOUR, cal.get(java.util.Calendar.HOUR_OF_DAY))
+            putExtra(EXTRA_MINUTE, cal.get(java.util.Calendar.MINUTE))
+            putExtra(EXTRA_NAME, name)
+            putExtra(EXTRA_DOSE, dose)
+            putExtra(EXTRA_SNOOZE, true)
+        }
+        val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        val pending = PendingIntent.getBroadcast(ctx, testId, intent, flags)
+        setAlarmGuaranteed(ctx, am, triggerTime, pending)
+    }
 }

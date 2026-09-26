@@ -214,55 +214,22 @@ class MemoFragment : Fragment() {
     }
 
     private fun triggerTestBanner(isMed: Boolean) {
-        val ctx = requireContext()
-        val cal = java.util.Calendar.getInstance()
-        val hour = cal.get(java.util.Calendar.HOUR_OF_DAY)
-        val minute = cal.get(java.util.Calendar.MINUTE)
+        val ctx = requireContext().applicationContext
+        val sampleName = if (isMed) getString(R.string.test_med_sample_name) else ""
+        val sampleDose = if (isMed) getString(R.string.test_med_sample_dose) else ""
+        val type = if (isMed) ReminderBannerActivity.TYPE_MED else ReminderBannerActivity.TYPE_MEASURE
 
-        if (isMed) {
-            val sampleName = getString(R.string.test_med_sample_name)
-            val sampleDose = getString(R.string.test_med_sample_dose)
-            val testId = 99901
-            Notifications.showMed(ctx, testId, sampleName, sampleDose, hour, minute)
-            Notifications.playMedSignal(ctx)
-            try {
-                val bannerIntent = ReminderBannerActivity.createIntent(
-                    ctx = ctx,
-                    type = ReminderBannerActivity.TYPE_MED,
-                    id = testId,
-                    hour = hour,
-                    minute = minute,
-                    name = sampleName,
-                    dose = sampleDose
-                )
-                startActivity(bannerIntent)
-            } catch (_: Exception) {
-            }
-        } else {
-            val testId = 99902
-            Notifications.show(
-                ctx,
-                testId,
-                getString(R.string.notify_title),
-                getString(R.string.notify_text),
-                hour,
-                minute
-            )
-            Notifications.playMedSignal(ctx)
-            try {
-                val bannerIntent = ReminderBannerActivity.createIntent(
-                    ctx = ctx,
-                    type = ReminderBannerActivity.TYPE_MEASURE,
-                    id = testId,
-                    hour = hour,
-                    minute = minute,
-                    name = "",
-                    dose = ""
-                )
-                startActivity(bannerIntent)
-            } catch (_: Exception) {
-            }
-        }
+        // Планируем через AlarmManager с системным приоритетом будильника (AlarmClockInfo).
+        // Это позволяет протестировать поведение на заблокированном телефоне!
+        ReminderScheduler.scheduleTest(
+            ctx = ctx,
+            type = type,
+            delaySeconds = 10,
+            name = sampleName,
+            dose = sampleDose
+        )
+
+        Toast.makeText(requireContext(), R.string.test_banner_scheduled_toast, Toast.LENGTH_LONG).show()
     }
 
     private fun writeBackup(uri: Uri) {

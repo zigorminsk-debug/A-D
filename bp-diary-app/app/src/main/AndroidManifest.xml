@@ -106,6 +106,8 @@
             android:noHistory="true"
             android:finishOnTaskLaunch="true"
             android:showOnLockScreen="true"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
             android:theme="@style/Theme.BPDiary.ReminderDialog" />
     <receiver
             android:name=".SnoozeReceiver"
