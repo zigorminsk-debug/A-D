@@ -79,13 +79,13 @@ class DiaryFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        adapter = RecordsAdapter(emptyList(), onClick = { openDialog(it) }, onLongClick = { confirmDelete(it) })
+        adapter = RecordsAdapter(emptyList(), onClick = { (activity as? MainActivity)?.openRecordEdit(it.id) }, onLongClick = { confirmDelete(it) })
         b.records.layoutManager = LinearLayoutManager(requireContext())
         // Шапку раздуваем только после назначения LayoutManager: RecyclerView не умеет
         // считать LayoutParams элемента, пока менеджер не задан, и падал с IllegalStateException.
         _h = ItemDiaryHeaderBinding.inflate(layoutInflater, b.records, false)
         b.records.adapter = ConcatAdapter(HeaderAdapter(h.root), adapter)
-        b.fabAdd.setOnClickListener { openPairDialog() }
+        b.fabAdd.setOnClickListener { (activity as? MainActivity)?.openRecordEdit(isPair = true) }
         b.btnCall103.setOnClickListener { callAmbulance() }
         b.btnStroke.setOnClickListener { speakStrokeAndCall() }
         b.btnSosData.setOnClickListener {
@@ -757,7 +757,7 @@ class DiaryFragment : Fragment() {
         pairTone = null
     }
 
-    fun openNewRecordDialog() { openDialog(null) }
+    fun openNewRecordDialog() { (activity as? MainActivity)?.openRecordEdit(isPair = false) }
 
     private fun openDialog(edit: BpRecord?) {
         val db = DialogRecordBinding.inflate(layoutInflater)

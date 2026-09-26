@@ -71,6 +71,23 @@ class MainActivity : AppCompatActivity() {
         outState.putInt(STATE_ABOUT_RETURN, aboutReturnTab)
     }
 
+    fun openRecordEdit(editRecordId: Long? = null, isPair: Boolean = false) {
+        if (::b.isInitialized) {
+            aboutReturnTab = b.bottomNav.selectedId
+            b.bottomNav.visibility = android.view.View.GONE
+        }
+        val f = RecordEditFragment.newInstance(editRecordId, isPair)
+        show(f)
+    }
+
+    fun closeRecordEdit() {
+        if (::b.isInitialized) {
+            b.bottomNav.visibility = android.view.View.VISIBLE
+            b.bottomNav.select(R.id.action_diary, notify = false)
+        }
+        show(DiaryFragment())
+    }
+
     fun openAbout() {
         if (::b.isInitialized) aboutReturnTab = b.bottomNav.selectedId
         show(AboutFragment())
@@ -78,8 +95,25 @@ class MainActivity : AppCompatActivity() {
 
     fun closeAbout() {
         val tab = aboutReturnTab
-        if (::b.isInitialized) b.bottomNav.select(tab, notify = false)
+        if (::b.isInitialized) {
+            b.bottomNav.visibility = android.view.View.VISIBLE
+            b.bottomNav.select(tab, notify = false)
+        }
         show(fragmentFor(tab))
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onBackPressed() {
+        val current = supportFragmentManager.findFragmentById(R.id.container)
+        if (current is RecordEditFragment) {
+            current.handleBack()
+            return
+        }
+        if (current is AboutFragment) {
+            closeAbout()
+            return
+        }
+        super.onBackPressed()
     }
 
     private fun fragmentFor(itemId: Int): Fragment {
