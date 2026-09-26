@@ -102,7 +102,9 @@
             android:name=".ReminderBannerActivity"
             android:exported="false"
             android:excludeFromRecents="true"
-            android:launchMode="singleTop"
+            android:taskAffinity="com.arena.bpdiary.reminder"
+            android:noHistory="true"
+            android:finishOnTaskLaunch="true"
             android:showOnLockScreen="true"
             android:theme="@style/Theme.BPDiary.ReminderDialog" />
     <receiver

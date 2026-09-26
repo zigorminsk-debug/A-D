@@ -59,6 +59,12 @@ class ReminderBannerActivity : AppCompatActivity() {
         }
 
         b.btnOpen.setOnClickListener {
+            // Закрываем уведомление в шторке
+            try {
+                androidx.core.app.NotificationManagerCompat.from(this).cancel(id)
+            } catch (_: Exception) {
+            }
+
             val main = Intent(this, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
                 if (type == TYPE_MED) {
@@ -70,10 +76,16 @@ class ReminderBannerActivity : AppCompatActivity() {
                 }
             }
             startActivity(main)
-            finish()
+            // Закрываем баннер мгновенно и без анимации задержки
+            finishAndRemoveTask()
         }
 
         b.btnSnooze.setOnClickListener {
+            try {
+                androidx.core.app.NotificationManagerCompat.from(this).cancel(id)
+            } catch (_: Exception) {
+            }
+
             ReminderScheduler.scheduleSnooze(
                 ctx = applicationContext,
                 type = type,
@@ -85,11 +97,11 @@ class ReminderBannerActivity : AppCompatActivity() {
                 delayMinutes = 30
             )
             Toast.makeText(this, R.string.reminder_banner_snoozed_toast, Toast.LENGTH_SHORT).show()
-            finish()
+            finishAndRemoveTask()
         }
 
         // Клик по фону вне карточки также закрывает баннер
-        b.root.setOnClickListener { finish() }
+        b.root.setOnClickListener { finishAndRemoveTask() }
         b.cardReminder.setOnClickListener { /* не закрывать при клике на саму карточку */ }
     }
 
