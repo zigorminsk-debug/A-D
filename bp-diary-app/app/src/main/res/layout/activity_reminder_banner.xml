@@ -21,7 +21,7 @@
         app:cardBackgroundColor="@color/white"
         app:cardCornerRadius="24dp"
         app:cardElevation="10dp"
-        app:strokeColor="@color/stroke"
+        app:strokeColor="@color/bg"
         app:strokeWidth="1dp">
 
         <LinearLayout
@@ -100,7 +100,7 @@
                 android:layout_height="1dp"
                 android:layout_marginTop="18dp"
                 android:layout_marginBottom="14dp"
-                android:background="@color/stroke" />
+                android:background="@color/bg" />
 
             <!-- Кнопки: Открыть (первичная) и Отложить на 30 минут -->
             <com.google.android.material.button.MaterialButton
