@@ -71,7 +71,7 @@ class MainActivity : AppCompatActivity() {
         outState.putInt(STATE_ABOUT_RETURN, aboutReturnTab)
     }
 
-    fun openRecordEdit(editRecordId: Long? = null, isPair: Boolean = false) {
+    fun openRecordEdit(editRecordId: String? = null, isPair: Boolean = false) {
         if (::b.isInitialized) {
             aboutReturnTab = b.bottomNav.selectedId
             b.bottomNav.visibility = android.view.View.GONE

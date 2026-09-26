@@ -46,7 +46,7 @@ class RecordEditFragment : Fragment() {
     private val b get() = _b!!
     private val store by lazy { Store(requireContext()) }
 
-    private var editRecordId: Long? = null
+    private var editRecordId: String? = null
     private var isPairMode: Boolean = false
 
     private var whenMillis: Long = System.currentTimeMillis()
@@ -65,10 +65,10 @@ class RecordEditFragment : Fragment() {
         private const val ARG_RECORD_ID = "record_id"
         private const val ARG_IS_PAIR = "is_pair"
 
-        fun newInstance(recordId: Long? = null, isPair: Boolean = false): RecordEditFragment {
+        fun newInstance(recordId: String? = null, isPair: Boolean = false): RecordEditFragment {
             return RecordEditFragment().apply {
                 arguments = Bundle().apply {
-                    if (recordId != null) putLong(ARG_RECORD_ID, recordId)
+                    if (recordId != null) putString(ARG_RECORD_ID, recordId)
                     putBoolean(ARG_IS_PAIR, isPair)
                 }
             }
@@ -79,7 +79,7 @@ class RecordEditFragment : Fragment() {
         super.onCreate(savedInstanceState)
         val args = arguments
         if (args != null && args.containsKey(ARG_RECORD_ID)) {
-            editRecordId = args.getLong(ARG_RECORD_ID)
+            editRecordId = args.getString(ARG_RECORD_ID)
         }
         isPairMode = args?.getBoolean(ARG_IS_PAIR, false) ?: false
     }
@@ -195,10 +195,10 @@ class RecordEditFragment : Fragment() {
 
         if (existing == null) {
             store.addRecord(sys!!, dia!!, pulse, note, whenMillis)
-            Toast.makeText(requireContext(), R.string.record_added, Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), R.string.record_saved_short, Toast.LENGTH_SHORT).show()
         } else {
             store.updateRecord(BpRecord(existing.id, whenMillis, sys!!, dia!!, pulse, note))
-            Toast.makeText(requireContext(), R.string.record_updated, Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), R.string.record_saved_short, Toast.LENGTH_SHORT).show()
         }
 
         (activity as? MainActivity)?.closeRecordEdit()
@@ -320,7 +320,7 @@ class RecordEditFragment : Fragment() {
         fun step1() {
             pairPhase = 1
             b.tvStep.visibility = View.VISIBLE
-            b.tvStep.text = getString(R.string.pair_step1)
+            b.tvStep.text = getString(R.string.pair_step_first)
             b.tvTimer.visibility = View.GONE
             b.tvWait.visibility = View.GONE
             b.tvPair.visibility = View.GONE
@@ -332,7 +332,7 @@ class RecordEditFragment : Fragment() {
             stopPairSession()
             pairPhase = 3
             b.tvStep.visibility = View.VISIBLE
-            b.tvStep.text = getString(R.string.pair_step2)
+            b.tvStep.text = getString(R.string.pair_step_second)
             b.tvTimer.visibility = View.GONE
             b.tvWait.visibility = View.GONE
             b.tvPair.visibility = View.VISIBLE

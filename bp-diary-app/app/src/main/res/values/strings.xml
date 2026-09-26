@@ -393,4 +393,5 @@
 <string name="test_banner_scheduled_toast">Через 10 секунд сработает напоминание. Заблокируйте телефон, чтобы проверить!</string>
 <string name="record_time_title">Дата и время замера</string>
     <string name="record_bp_title">Показатели артериального давления</string>
+    <string name="record_saved_short">Показатели сохранены</string>
 </resources>
