@@ -382,4 +382,12 @@
     <string name="reminder_banner_badge_med">Приём лекарства</string>
     <string name="reminder_banner_action_measure">Измерить артериальное давление и записать в дневник</string>
     <string name="reminder_banner_action_med">Принять назначенный препарат и отметить приём в списке</string>
+<string name="test_banner_title">Проверка напоминаний</string>
+    <string name="test_banner_desc">Запустить тестовое напоминание, чтобы проверить баннер на рабочем столе и звук</string>
+    <string name="btn_test_banner">Проверить баннер</string>
+    <string name="test_banner_dialog_title">Какое напоминание проверить?</string>
+    <string name="test_banner_opt_measure">Замер артериального давления</string>
+    <string name="test_banner_opt_med">Приём лекарства (тестовый препарат)</string>
+    <string name="test_med_sample_name">Лозартан</string>
+    <string name="test_med_sample_dose">50 мг</string>
 </resources>

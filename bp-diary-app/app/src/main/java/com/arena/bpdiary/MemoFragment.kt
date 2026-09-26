@@ -87,7 +87,8 @@ class MemoFragment : Fragment() {
         b.btnAbout.setOnClickListener { (activity as? MainActivity)?.openAbout() }
         b.btnExportCsv.setOnClickListener { exportCsv() }
         b.btnBackup.setOnClickListener { saveBackup.launch("bp-diary-backup.json") }
-        b.btnRestore.setOnClickListener { openBackup.launch(arrayOf("*/*")) }
+                b.btnRestore.setOnClickListener { openBackup.launch(arrayOf("*/*")) }
+        b.btnTestBanner.setOnClickListener { showTestBannerDialog() }
         b.btnUpdate.setOnClickListener {
             (activity as? androidx.appcompat.app.AppCompatActivity)?.let { AppUpdater.start(it, manual = true) }
         }
@@ -193,6 +194,75 @@ class MemoFragment : Fragment() {
             putExtra(Intent.EXTRA_TEXT, csv)
         }
         startActivity(Intent.createChooser(i, getString(R.string.export_chooser)))
+    }
+
+    private fun showTestBannerDialog() {
+        val options = arrayOf(
+            getString(R.string.test_banner_opt_measure),
+            getString(R.string.test_banner_opt_med)
+        )
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.test_banner_dialog_title)
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> triggerTestBanner(isMed = false)
+                    1 -> triggerTestBanner(isMed = true)
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun triggerTestBanner(isMed: Boolean) {
+        val ctx = requireContext()
+        val cal = java.util.Calendar.getInstance()
+        val hour = cal.get(java.util.Calendar.HOUR_OF_DAY)
+        val minute = cal.get(java.util.Calendar.MINUTE)
+
+        if (isMed) {
+            val sampleName = getString(R.string.test_med_sample_name)
+            val sampleDose = getString(R.string.test_med_sample_dose)
+            val testId = 99901
+            Notifications.showMed(ctx, testId, sampleName, sampleDose, hour, minute)
+            Notifications.playMedSignal(ctx)
+            try {
+                val bannerIntent = ReminderBannerActivity.createIntent(
+                    ctx = ctx,
+                    type = ReminderBannerActivity.TYPE_MED,
+                    id = testId,
+                    hour = hour,
+                    minute = minute,
+                    name = sampleName,
+                    dose = sampleDose
+                )
+                startActivity(bannerIntent)
+            } catch (_: Exception) {
+            }
+        } else {
+            val testId = 99902
+            Notifications.show(
+                ctx,
+                testId,
+                getString(R.string.notify_title),
+                getString(R.string.notify_text),
+                hour,
+                minute
+            )
+            Notifications.playMedSignal(ctx)
+            try {
+                val bannerIntent = ReminderBannerActivity.createIntent(
+                    ctx = ctx,
+                    type = ReminderBannerActivity.TYPE_MEASURE,
+                    id = testId,
+                    hour = hour,
+                    minute = minute,
+                    name = "",
+                    dose = ""
+                )
+                startActivity(bannerIntent)
+            } catch (_: Exception) {
+            }
+        }
     }
 
     private fun writeBackup(uri: Uri) {
