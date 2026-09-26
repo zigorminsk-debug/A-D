@@ -36,8 +36,13 @@ data class Med(
     val name: String,
     val dose: String,
     val times: List<MedTime>,
-    val enabled: Boolean = true
-)
+    val enabled: Boolean = true,
+    /** Сколько приёмов в день задал пациент. 0 — посчитать по числу включённых времён. */
+    val perDay: Int = 0
+) {
+    /** Число приёмов в день для показа: у старых записей считается по временам. */
+    val dosesPerDay: Int get() = if (perDay > 0) perDay else times.count { it.enabled }
+}
 
 /** Отметка о приёме: status = "taken" | "skipped". */
 data class MedLog(
@@ -291,7 +296,8 @@ class Store(context: Context) {
                         name = o.optString("name", ""),
                         dose = o.optString("dose", ""),
                         times = times.sortedWith(compareBy({ it.hour }, { it.minute })),
-                        enabled = o.optBoolean("enabled", true)
+                        enabled = o.optBoolean("enabled", true),
+                        perDay = o.optInt("perDay", 0)
                     )
                 )
             } catch (_: Exception) {
@@ -320,13 +326,19 @@ class Store(context: Context) {
                     .put("name", m.name)
                     .put("dose", m.dose)
                     .put("enabled", m.enabled)
+                    .put("perDay", m.perDay)
                     .put("times", tArr)
             )
         }
         sp.edit().putString("meds", arr.toString()).apply()
     }
 
-    fun addMed(name: String, dose: String, times: List<Pair<Int, Int>>): Med {
+    fun addMed(
+        name: String,
+        dose: String,
+        times: List<Pair<Int, Int>>,
+        perDay: Int = 0
+    ): Med {
         if (readArray("meds") == null) {
             return Med(0, name, dose, emptyList(), false)
         }
@@ -334,7 +346,8 @@ class Store(context: Context) {
             id = nextId(),
             name = name,
             dose = dose,
-            times = times.map { MedTime(nextId(), it.first, it.second) }
+            times = times.map { MedTime(nextId(), it.first, it.second) },
+            perDay = perDay
         )
         val list = meds()
         list.add(med)
@@ -488,6 +501,7 @@ class Store(context: Context) {
                     .put("name", m.name)
                     .put("dose", m.dose)
                     .put("enabled", m.enabled)
+                    .put("perDay", m.perDay)
                     .put("times", tArr)
             )
         }

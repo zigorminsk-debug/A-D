@@ -26,11 +26,24 @@
     <string name="edit_med">Изменить препарат</string>
     <string name="med_name">Название препарата</string>
     <string name="med_dose">Дозировка (например, 10 мг)</string>
+    <string name="med_per_day">Приёмов в день</string>
+    <string name="med_per_day_bad">Укажите, сколько раз в день принимать: от 1 до 6</string>
+    <string name="med_first_time">Первый приём: %1$s</string>
+    <string name="med_first_time_title">Первый приём</string>
+    <string name="med_first_time_bad">Первый приём — между 5:00 и 21:00</string>
+    <string name="med_calc_hint">Укажите количество приёмов в день — время рассчитается само: равномерно, последний приём не позже 22:00</string>
+    <string name="med_calc_result">Время приёма: %1$s</string>
     <string name="med_times_label">Времена приёма (нажмите на время, чтобы убрать)</string>
     <string name="med_add_time">+ Время приёма</string>
     <string name="med_no_times">Времена приёма ещё не добавлены</string>
     <string name="no_meds">Список препаратов пуст.\nНажмите «+», чтобы добавить лекарство\nи настроить напоминания приёма.</string>
     <string name="med_tap_hint">нажмите — отметить приём • долгое нажатие — удалить</string>
+    <plurals name="med_per_day_short">
+        <item quantity="one">%d раз в день</item>
+        <item quantity="few">%d раза в день</item>
+        <item quantity="many">%d раз в день</item>
+        <item quantity="other">%d раз в день</item>
+    </plurals>
     <string name="history_title">История приёмов</string>
     <string name="no_logs">Отметок пока нет.\nНажмите на препарат, чтобы отметить приём.</string>
     <string name="mark_taken">Принял сейчас</string>

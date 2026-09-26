@@ -3,6 +3,8 @@ package com.arena.bpdiary
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -149,6 +151,38 @@ class MedsFragment : Fragment() {
             times.addAll(it.times)
         }
 
+        // Сколько приёмов в день и во сколько первый: по этим двум числам считается время приёма.
+        var firstHour = MedSchedule.FIRST_HOUR
+        var firstMinute = 0
+        times.firstOrNull { it.enabled }?.let { firstHour = it.hour; firstMinute = it.minute }
+        var perDay = if (edit != null) edit.dosesPerDay else 0
+        var watcher: TextWatcher? = null
+
+        fun firstLabel() {
+            d.btnMedFirstTime.text = getString(
+                R.string.med_first_time,
+                String.format(Locale.getDefault(), "%02d:%02d", firstHour, firstMinute)
+            )
+        }
+
+        /** Подпись под полем: рассчитанное время или подсказка, как его получить. */
+        fun showCalc() {
+            val slots = times.filter { it.enabled }.map { it.hour to it.minute }
+            d.tvMedCalc.text = if (slots.isEmpty()) {
+                getString(R.string.med_calc_hint)
+            } else {
+                getString(R.string.med_calc_result, MedSchedule.describe(slots))
+            }
+        }
+
+        /** Записать число приёмов в поле, не запуская по этому пересчёт времени. */
+        fun setPerDayField(value: Int) {
+            val w = watcher
+            if (w != null) d.etMedPerDay.removeTextChangedListener(w)
+            d.etMedPerDay.setText(if (value in 1..MedSchedule.MAX_PER_DAY) value.toString() else "")
+            if (w != null) d.etMedPerDay.addTextChangedListener(w)
+        }
+
         fun renderTimes() {
             d.timesContainer.removeAllViews()
             times.forEach { t ->
@@ -160,6 +194,9 @@ class MedsFragment : Fragment() {
                     gravity = Gravity.CENTER_VERTICAL
                     setOnClickListener {
                         times.remove(t)
+                        // Время убрали руками — количество приёмов в день считаем по списку.
+                        perDay = times.size
+                        setPerDayField(perDay)
                         renderTimes()
                     }
                 }
@@ -174,6 +211,55 @@ class MedsFragment : Fragment() {
                 }
                 d.timesContainer.addView(hint)
             }
+            showCalc()
+        }
+
+        /** Время приёма по числу приёмов в день: последний приём не позже 22:00. */
+        fun recalc() {
+            if (perDay < 1) return
+            val slots = MedSchedule.slots(perDay, firstHour, firstMinute)
+            times.clear()
+            slots.forEach { times.add(MedTime(0, it.first, it.second)) }
+            renderTimes()
+        }
+
+        firstLabel()
+        setPerDayField(perDay)
+
+        // Поле уже заполнено при открытии — пересчёт только по действию пациента.
+        watcher = object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, a: Int, b2: Int, c: Int) {}
+            override fun onTextChanged(s: CharSequence?, a: Int, b2: Int, c: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                val typed = s?.toString()?.trim().orEmpty()
+                perDay = typed.toIntOrNull() ?: 0
+                d.etMedPerDay.error = null
+                if (typed.isNotEmpty() && perDay !in 1..MedSchedule.MAX_PER_DAY) {
+                    d.etMedPerDay.error = getString(R.string.med_per_day_bad)
+                }
+                recalc()
+            }
+        }
+        d.etMedPerDay.addTextChangedListener(watcher)
+
+        d.btnMedFirstTime.setOnClickListener {
+            val tp = MaterialTimePicker.Builder()
+                .setTimeFormat(TimeFormat.CLOCK_24H)
+                .setHour(firstHour)
+                .setMinute(firstMinute)
+                .setTitleText(R.string.med_first_time_title)
+                .build()
+            tp.addOnPositiveButtonClickListener {
+                if (tp.hour !in MedSchedule.MIN_FIRST_HOUR..MedSchedule.MAX_FIRST_HOUR) {
+                    Toast.makeText(requireContext(), R.string.med_first_time_bad, Toast.LENGTH_LONG).show()
+                    return@addOnPositiveButtonClickListener
+                }
+                firstHour = tp.hour
+                firstMinute = tp.minute
+                firstLabel()
+                recalc()
+            }
+            tp.show(childFragmentManager, "tp-first")
         }
         renderTimes()
 
@@ -188,6 +274,9 @@ class MedsFragment : Fragment() {
             tp.addOnPositiveButtonClickListener {
                 times.add(MedTime(0, tp.hour, tp.minute))
                 times.sortWith(compareBy({ it.hour }, { it.minute }))
+                // Времена меняли руками — количество приёмов в день считаем по списку.
+                perDay = times.size
+                setPerDayField(perDay)
                 renderTimes()
             }
             tp.show(childFragmentManager, "tp")
@@ -209,12 +298,29 @@ class MedsFragment : Fragment() {
                 d.etMedName.error = getString(R.string.err_empty)
                 return@setOnClickListener
             }
+            val typedPerDay = d.etMedPerDay.text?.toString()?.trim().orEmpty()
+            if (typedPerDay.isNotEmpty() && perDay !in 1..MedSchedule.MAX_PER_DAY) {
+                d.etMedPerDay.error = getString(R.string.med_per_day_bad)
+                return@setOnClickListener
+            }
+            if (typedPerDay.isNotEmpty() && times.isEmpty()) {
+                // Число приёмов задано, а времени нет — считаем его сами.
+                MedSchedule.slots(perDay, firstHour, firstMinute)
+                    .forEach { times.add(MedTime(0, it.first, it.second)) }
+                renderTimes()
+            }
             if (times.isEmpty()) {
                 Toast.makeText(requireContext(), R.string.med_no_times, Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             if (edit == null) {
-                val med = store.addMed(name, dose, times.map { it.hour to it.minute })
+                val med = store.addMed(
+                    name,
+                    dose,
+                    times.map { it.hour to it.minute },
+                    if (typedPerDay.isEmpty()) 0 else perDay
+                )
+                // Будильники ставятся на каждое рассчитанное время приёма.
                 ReminderScheduler.scheduleMedAll(requireContext(), med)
             } else {
                 ReminderScheduler.cancelMed(requireContext(), edit)
@@ -224,7 +330,12 @@ class MedsFragment : Fragment() {
                     else store.allocateId().also { reserved.add(it) }
                     t.copy(id = id)
                 }
-                val updated = edit.copy(name = name, dose = dose, times = slots)
+                val updated = edit.copy(
+                    name = name,
+                    dose = dose,
+                    times = slots,
+                    perDay = if (typedPerDay.isEmpty()) 0 else perDay
+                )
                 store.updateMed(updated)
                 ReminderScheduler.scheduleMedAll(requireContext(), updated)
             }
@@ -264,6 +375,13 @@ class MedsAdapter(
         h.b.tvName.text = m.name
         h.b.tvDose.text = m.dose
         h.b.tvDose.visibility = if (m.dose.isBlank()) View.GONE else View.VISIBLE
+        val perDay = m.dosesPerDay
+        h.b.tvPerDay.text = if (perDay > 0) {
+            h.b.root.context.resources.getQuantityString(R.plurals.med_per_day_short, perDay, perDay)
+        } else {
+            ""
+        }
+        h.b.tvPerDay.visibility = if (perDay > 0) View.VISIBLE else View.GONE
         h.b.tvTimes.text = m.times.joinToString(" • ") {
             String.format("%02d:%02d", it.hour, it.minute)
         }

@@ -213,7 +213,10 @@ object PdfExporter {
             medsSorted.forEach { med ->
                 val name = med.name.ifBlank { "без названия" }
                 val dose = med.dose.ifBlank { "не указана" }
-                drawWrapped("$name. Дозировка: $dose. Время приёма: ${regimenTimes(med)}", body)
+                val perDay = med.dosesPerDay
+                val count = if (perDay > 0) "Приёмов в день: $perDay. " else ""
+                drawWrapped("$name. Дозировка: $dose. $count" +
+                    "Время приёма: ${regimenTimes(med)}", body)
             }
         }
 
