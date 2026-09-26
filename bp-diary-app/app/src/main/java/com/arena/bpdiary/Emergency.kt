@@ -327,6 +327,7 @@ object Emergency {
             .setView(binding.root)
             .setCancelable(true)
             .create()
+        Dialogs.attachToIme(dialog)
         fun persistDialog(): Boolean {
             val ok = save(
                 activity,
@@ -507,6 +508,7 @@ object Emergency {
             .setView(binding.root)
             .setCancelable(true)
             .create()
+        Dialogs.attachToIme(dialog)
 
         fun status(text: String) {
             binding.tvVoiceStatus.text = text

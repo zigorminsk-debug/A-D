@@ -145,6 +145,7 @@ object AppUpdater {
             .setNegativeButton(R.string.update_later, null)
             .setNeutralButton(R.string.update_token_create, null)
             .create()
+        Dialogs.attachToIme(shown)
         shown.setOnShowListener {
             shown.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
                 openUrl(activity, TOKEN_URL)

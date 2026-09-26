@@ -199,6 +199,7 @@ class MedsFragment : Fragment() {
             .setPositiveButton(R.string.save, null)
             .setNegativeButton(R.string.cancel, null)
             .create()
+        Dialogs.attachToIme(dialog)
         dialog.show()
 
         dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {

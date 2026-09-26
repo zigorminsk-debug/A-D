@@ -32,6 +32,7 @@ object PdfShare {
             .setPositiveButton(R.string.pdf_make, null)
             .setNegativeButton(R.string.cancel, null)
             .create()
+        Dialogs.attachToIme(dialog)
         dialog.show()
         val refreshName = {
             val typed = form.etName.text?.toString()?.trim().orEmpty()

@@ -17,6 +17,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -194,22 +195,45 @@ class DiaryFragment : Fragment() {
         }
     }
 
-    /** Поля прокручиваются, кнопки «Дальше» и «Сохранить среднее» остаются на экране. */
-    private fun capForm(scroll: View) {
-        val scale = resources.configuration.fontScale
-        val fraction = if (scale >= 1.3f) 0.34f else 0.46f
-        val max = (resources.displayMetrics.heightPixels * fraction).toInt()
-        val lp = scroll.layoutParams
-        lp.height = ViewGroup.LayoutParams.WRAP_CONTENT
-        scroll.layoutParams = lp
-        scroll.post {
-            if (!isAdded) return@post
-            val content = (scroll as? ViewGroup)?.getChildAt(0)?.measuredHeight ?: return@post
-            val target = content.coerceAtMost(max)
-            if (target > 0 && scroll.layoutParams.height != target) {
-                scroll.layoutParams.height = target
-                scroll.requestLayout()
+    /**
+     * Окно с полями ввода подстраивается под клавиатуру: она сжимает окно, форма ужимается
+     * по свободному месту, а кнопки «Дальше» и «Сохранить среднее» остаются над клавиатурой.
+     * Прокрутка формы прячет клавиатуру — её не нужно убирать вручную, чтобы нажать кнопку.
+     */
+    private fun tuneFormDialog(d: AlertDialog, db: DialogRecordBinding) {
+        Dialogs.attachToIme(d)
+        db.root.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> fitForm(db) }
+        db.formScroll.setOnScrollChangeListener { _, _, _, _, _ ->
+            Dialogs.hideKeyboard(context, db.root)
+        }
+        // Кнопка ↵ на клавиатуре закрывает её: «Готово» не оставляет клавиатуру открытой.
+        listOf(db.etSys, db.etDia, db.etPulse, db.etNote).forEach { field ->
+            field.setOnEditorActionListener { view, actionId, event ->
+                val done = actionId == EditorInfo.IME_ACTION_DONE ||
+                    event?.keyCode == KeyEvent.KEYCODE_ENTER
+                if (!done) {
+                    false
+                } else {
+                    Dialogs.hideKeyboard(context, db.root)
+                    view.clearFocus()
+                    true
+                }
             }
+        }
+    }
+
+    /** Высота формы = свободное место в окне минус кнопки: они никогда не уезжают за клавиатуру. */
+    private fun fitForm(db: DialogRecordBinding) {
+        val scroll = db.formScroll
+        val content = (scroll.getChildAt(0) as? View)?.measuredHeight ?: return
+        val rootH = db.root.height
+        if (rootH <= 0 || content <= 0) return
+        val actionsH = if (db.pairActions.visibility == View.VISIBLE) db.pairActions.height else 0
+        val available = (rootH - actionsH).coerceAtLeast(0)
+        val target = content.coerceAtMost(available)
+        if (target > 0 && scroll.layoutParams.height != target) {
+            scroll.layoutParams.height = target
+            scroll.requestLayout()
         }
     }
 
@@ -369,6 +393,7 @@ class DiaryFragment : Fragment() {
             .setTitle(R.string.pair_rest_title)
             .setView(db.root)
             .create()
+        tuneFormDialog(d, db)
         d.setCanceledOnTouchOutside(false)
         d.setCancelable(false)
         var leaveAsk: AlertDialog? = null
@@ -475,7 +500,7 @@ class DiaryFragment : Fragment() {
             showNumbers(true)
             field(db.etNote, true)
             showActions()
-            capForm(db.formScroll)
+            fitForm(db)
             db.etSys.requestFocus()
         }
 
@@ -499,7 +524,7 @@ class DiaryFragment : Fragment() {
             paintPrimary(2)
             db.btnSingle.visibility = View.GONE
             db.pairActions.visibility = View.VISIBLE
-            capForm(db.formScroll)
+            fitForm(db)
             d.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             pairTimer?.cancel()
             pairTimer = object : CountDownTimer(REST_MS, 250) {
@@ -541,7 +566,7 @@ class DiaryFragment : Fragment() {
             db.etPulse.error = null
             preview()
             showActions()
-            capForm(db.formScroll)
+            fitForm(db)
             db.etSys.requestFocus()
         }
 
@@ -561,7 +586,7 @@ class DiaryFragment : Fragment() {
             val totalSec = (PAIR_GAP_MS / 1000).toInt()
             db.tvTimer.text = clock(totalSec)
             showActions()
-            capForm(db.formScroll)
+            fitForm(db)
             d.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             pairTimer?.cancel()
             pairTimer = object : CountDownTimer(PAIR_GAP_MS, 250) {
@@ -759,7 +784,7 @@ class DiaryFragment : Fragment() {
             .setPositiveButton(R.string.save, null)
             .setNegativeButton(R.string.cancel, null)
             .create()
-        d.setOnShowListener { capForm(db.formScroll) }
+        tuneFormDialog(d, db)
         d.show()
         d.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
             val sys = db.etSys.text?.toString()?.toIntOrNull()
@@ -778,6 +803,7 @@ class DiaryFragment : Fragment() {
             }
             if (!ok) return@setOnClickListener
 
+            Dialogs.hideKeyboard(requireContext(), db.root)
             if (edit == null) store.addRecord(sys!!, dia!!, pulse, note, whenMillis)
             else store.updateRecord(BpRecord(edit.id, whenMillis, sys!!, dia!!, pulse, note))
             refresh()
