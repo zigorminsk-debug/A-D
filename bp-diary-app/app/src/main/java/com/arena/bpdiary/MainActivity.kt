@@ -12,6 +12,10 @@ class MainActivity : AppCompatActivity() {
     private var uiReady = false
 
     companion object {
+        const val EXTRA_OPEN_TAB = "open_tab"
+        const val EXTRA_OPEN_NEW_RECORD = "open_new_record"
+        const val EXTRA_MED_ID = "med_id"
+
         private const val STATE_TAB = "tab"
         private const val STATE_ABOUT_RETURN = "about_return"
     }
@@ -37,9 +41,16 @@ class MainActivity : AppCompatActivity() {
             val tab = savedInstanceState?.getInt(STATE_TAB, R.id.action_diary) ?: R.id.action_diary
             b.bottomNav.select(tab, notify = false)
             if (savedInstanceState == null) {
-                show(DiaryFragment())
+                val initialTab = intent?.getIntExtra(EXTRA_OPEN_TAB, 0) ?: 0
+                if (initialTab != 0) {
+                    b.bottomNav.select(initialTab, notify = false)
+                    show(fragmentFor(initialTab))
+                } else {
+                    show(DiaryFragment())
+                }
             }
             uiReady = true
+            handleReminderIntent(intent)
         } catch (e: Exception) {
             showStartupError(e)
         }
@@ -104,7 +115,28 @@ class MainActivity : AppCompatActivity() {
     }
 
     /** Старые сборки могли повесить несколько приёмов на один id будильника. */
-    private fun repairAlarms() {
+    
+    override fun onNewIntent(intent: android.content.Intent?) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleReminderIntent(intent)
+    }
+
+    private fun handleReminderIntent(intent: android.content.Intent?) {
+        if (intent == null || !::b.isInitialized) return
+        val tab = intent.getIntExtra(EXTRA_OPEN_TAB, 0)
+        if (tab != 0) {
+            b.bottomNav.select(tab, notify = true)
+        }
+        if (intent.getBooleanExtra(EXTRA_OPEN_NEW_RECORD, false)) {
+            val f = supportFragmentManager.findFragmentById(R.id.container)
+            if (f is DiaryFragment) {
+                f.view?.post { f.openNewRecordDialog() }
+            }
+        }
+    }
+
+private fun repairAlarms() {
         try {
             val obsolete = Store(this).repairAlarmIds()
             obsolete?.forEach { ReminderScheduler.cancel(this, it) }

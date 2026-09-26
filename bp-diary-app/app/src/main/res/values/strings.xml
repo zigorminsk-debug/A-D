@@ -375,4 +375,11 @@
     <string name="memo_meds">• Принимайте ежедневно в одно и то же время — даже когда давление «нормальное»\n• Не отменяйте и не меняйте дозы самостоятельно\n• Поставьте напоминания в этом приложении на приём таблеток и измерения. В заданное время прозвучит сигнал и телефон завибрирует\n• Кашель после ингибитора АПФ или отёки после амлодипина — скажите врачу: есть равноценные замены\n• Раз в год по назначению врача: калий, креатинин, глюкоза, холестерин, ЭКГ</string>
 
     <string name="memo_footer">Приложение носит справочный характер и не является медицинской рекомендацией. Все решения о лечении принимайте вместе с вашим врачом.</string>
+<string name="reminder_banner_open">Открыть</string>
+    <string name="reminder_banner_snooze">Отложить на 30 минут</string>
+    <string name="reminder_banner_snoozed_toast">Напоминание повторится через 30 минут</string>
+    <string name="reminder_banner_badge_measure">Замер АД</string>
+    <string name="reminder_banner_badge_med">Приём лекарства</string>
+    <string name="reminder_banner_action_measure">Измерить артериальное давление и записать в дневник</string>
+    <string name="reminder_banner_action_med">Принять назначенный препарат и отметить приём в списке</string>
 </resources>

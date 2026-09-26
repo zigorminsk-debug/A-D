@@ -120,4 +120,49 @@ object ReminderScheduler {
         rescheduleAllMeasures(ctx)
         rescheduleAllMeds(ctx)
     }
+
+    // ---------- Откладывание напоминаний ----------
+
+    const val EXTRA_SNOOZE = "snooze"
+
+    fun scheduleSnooze(
+        ctx: Context,
+        type: String,
+        id: Int,
+        hour: Int,
+        minute: Int,
+        name: String = "",
+        dose: String = "",
+        delayMinutes: Int = 30
+    ) {
+        val am = ctx.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val triggerTime = System.currentTimeMillis() + delayMinutes * 60 * 1000L
+        val intent = Intent(ctx, AlarmReceiver::class.java).apply {
+            putExtra(EXTRA_TYPE, type)
+            putExtra(EXTRA_ID, id)
+            putExtra(EXTRA_HOUR, hour)
+            putExtra(EXTRA_MINUTE, minute)
+            putExtra(EXTRA_NAME, name)
+            putExtra(EXTRA_DOSE, dose)
+            putExtra(EXTRA_SNOOZE, true)
+        }
+        // Уникальный request code для отложенного будильника, чтобы не затереть регулярный суточный
+        val snoozeAlarmId = if (id != 0) -kotlin.math.abs(id) else -9999
+        val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        val pending = PendingIntent.getBroadcast(ctx, snoozeAlarmId, intent, flags)
+        try {
+            val exact = Build.VERSION.SDK_INT < 31 || am.canScheduleExactAlarms()
+            if (exact) {
+                am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pending)
+            } else {
+                am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pending)
+            }
+        } catch (_: Exception) {
+            try {
+                am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pending)
+            } catch (_: Exception) {
+            }
+        }
+    }
+
 }

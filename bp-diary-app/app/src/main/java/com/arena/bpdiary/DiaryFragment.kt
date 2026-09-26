@@ -757,6 +757,8 @@ class DiaryFragment : Fragment() {
         pairTone = null
     }
 
+    fun openNewRecordDialog() { openDialog(null) }
+
     private fun openDialog(edit: BpRecord?) {
         val db = DialogRecordBinding.inflate(layoutInflater)
         var whenMillis = edit?.time ?: System.currentTimeMillis()
