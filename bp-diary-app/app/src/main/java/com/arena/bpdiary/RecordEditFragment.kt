@@ -17,10 +17,10 @@ import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import com.arena.bpdiary.databinding.FragmentRecordEditBinding
@@ -37,8 +37,11 @@ import kotlin.math.roundToInt
 /**
  * Отдельная полноэкранная страница ввода показателей давления (вместо всплывающего диалога/плашки).
  * Поддерживает:
- *  - Одиночный ввод показателей (быстрое добавление замера или редактирование существующего);
- *  - Двукратный клинический замер с таймером отдыха и расчётом среднего.
+ *  - 5-минутный предварительный отдых перед измерением по клиническому протоколу (с возможностью «Уже отдохнул»);
+ *  - Первый замер давления;
+ *  - 1-минутный отдых между замерами с сигналом;
+ *  - Второй замер давления и автоматический расчёт клинического среднего;
+ *  - Одиночный быстрый ввод или редактирование существующей записи.
  */
 class RecordEditFragment : Fragment() {
 
@@ -53,10 +56,15 @@ class RecordEditFragment : Fragment() {
     private var whenTouched: Boolean = false
     private val whenFmt = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault())
 
-    // Состояние двойного замера
+    // Состояние двойного замера:
+    // 0: 5-минутный отдых покоя
+    // 1: первый замер
+    // 2: 1-минутная пауза между замерами
+    // 3: второй замер
     private data class Reading(val sys: Int, val dia: Int, val pulse: Int)
     private var firstReading: Reading? = null
-    private var pairPhase: Int = 0 // 1: первый замер, 2: таймер отдыха, 3: второй замер
+    private var pairPhase: Int = 0
+    private var isWaiting: Boolean = false
     private var pairTimer: CountDownTimer? = null
     private val pairHandler = Handler(Looper.getMainLooper())
     private var pairTone: ToneGenerator? = null
@@ -64,6 +72,9 @@ class RecordEditFragment : Fragment() {
     companion object {
         private const val ARG_RECORD_ID = "record_id"
         private const val ARG_IS_PAIR = "is_pair"
+
+        private const val REST_MS = 5L * 60L * 1000L   // 5 минут покоя перед измерением
+        private const val PAIR_GAP_MS = 60_000L         // 1 минута между замерами
 
         fun newInstance(recordId: String? = null, isPair: Boolean = false): RecordEditFragment {
             return RecordEditFragment().apply {
@@ -105,7 +116,6 @@ class RecordEditFragment : Fragment() {
             b.etNote.setText(existing.note)
             setupSingleMode(existing)
         } else if (isPairMode) {
-            b.toolbar.setTitle(R.string.pair_rest_title)
             setupPairMode()
         } else {
             b.toolbar.setTitle(R.string.add_record)
@@ -121,13 +131,6 @@ class RecordEditFragment : Fragment() {
                 updateWhenButton()
             }
         }
-
-        // Автофокус на поле верхнего давления при открытии
-        b.etSys.post {
-            b.etSys.requestFocus()
-            val imm = context?.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
-            imm?.showSoftInput(b.etSys, InputMethodManager.SHOW_IMPLICIT)
-        }
     }
 
     private fun updateWhenButton() {
@@ -135,8 +138,10 @@ class RecordEditFragment : Fragment() {
         b.btnWhen.text = getString(R.string.record_when_fmt, whenFmt.format(Date(whenMillis)))
     }
 
+    private fun clock(sec: Int) = String.format(Locale.getDefault(), "%d:%02d", sec / 60, sec % 60)
+
     // =========================================================================
-    // Одиночный ввод показателей (стандартная страница)
+    // Одиночный ввод показателей (быстрое добавление замера или редактирование)
     // =========================================================================
 
     private fun setupSingleMode(existing: BpRecord?) {
@@ -161,6 +166,12 @@ class RecordEditFragment : Fragment() {
         b.btnSave.setOnClickListener {
             hideKeyboard()
             saveSingleDirect(existing)
+        }
+
+        b.etSys.post {
+            b.etSys.requestFocus()
+            val imm = context?.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+            imm?.showSoftInput(b.etSys, InputMethodManager.SHOW_IMPLICIT)
         }
     }
 
@@ -205,7 +216,7 @@ class RecordEditFragment : Fragment() {
     }
 
     // =========================================================================
-    // Парный ввод показателей (протокол 2 замеров с минутой отдыха)
+    // Парный ввод показателей (протокол: 5 мин отдых -> 1-й замер -> 1 мин -> 2-й замер)
     // =========================================================================
 
     private fun setupPairMode() {
@@ -283,6 +294,12 @@ class RecordEditFragment : Fragment() {
         fun showActions() {
             b.pairActions.visibility = View.VISIBLE
             when (pairPhase) {
+                0 -> {
+                    b.btnPrimary.text = getString(R.string.pair_skip_rest)
+                    paintPrimary(2)
+                    b.btnSingle.visibility = View.GONE
+                    b.tvWarn.visibility = View.GONE
+                }
                 1 -> {
                     b.btnPrimary.text = getString(R.string.pair_next)
                     paintPrimary(0)
@@ -317,59 +334,121 @@ class RecordEditFragment : Fragment() {
             (activity as? MainActivity)?.closeRecordEdit()
         }
 
-        fun step1() {
+        fun showFirst() {
             pairPhase = 1
+            isWaiting = false
+            pairTimer?.cancel()
+            pairTimer = null
+            activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            b.toolbar.setTitle(R.string.pair_first_title)
+            b.btnWhen.visibility = View.VISIBLE
             b.tvStep.visibility = View.VISIBLE
             b.tvStep.text = getString(R.string.pair_step_first)
             b.tvTimer.visibility = View.GONE
             b.tvWait.visibility = View.GONE
             b.tvPair.visibility = View.GONE
             showNumbers(true)
+            field(b.etNote, true)
             showActions()
+            b.etSys.requestFocus()
+            val imm = context?.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+            imm?.showSoftInput(b.etSys, InputMethodManager.SHOW_IMPLICIT)
         }
 
-        fun step3() {
-            stopPairSession()
+        fun startRest() {
+            pairPhase = 0
+            isWaiting = true
+            hideKeyboard()
+            b.toolbar.setTitle(R.string.pair_rest_title)
+            b.btnWhen.visibility = View.GONE
+            b.tvStep.visibility = View.GONE
+            b.tvWarn.visibility = View.GONE
+            b.tvPair.visibility = View.GONE
+            showNumbers(false)
+            field(b.etNote, false)
+            b.tvTimer.visibility = View.VISIBLE
+            b.tvWait.visibility = View.VISIBLE
+            b.tvWait.text = getString(R.string.pair_rest)
+            val totalSec = (REST_MS / 1000).toInt()
+            b.tvTimer.text = clock(totalSec)
+            showActions()
+            activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+            pairTimer?.cancel()
+            pairTimer = object : CountDownTimer(REST_MS, 250) {
+                override fun onTick(ms: Long) {
+                    if (!isWaiting || pairPhase != 0) return
+                    val sec = ((ms + 999) / 1000).toInt()
+                    b.tvTimer.text = clock(sec)
+                }
+
+                override fun onFinish() {
+                    if (!isWaiting || pairPhase != 0) return
+                    isWaiting = false
+                    playMeasureSignal()
+                    showFirst()
+                }
+            }.start()
+        }
+
+        fun showSecond() {
             pairPhase = 3
+            isWaiting = false
+            pairTimer?.cancel()
+            pairTimer = null
+            activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            b.toolbar.setTitle(R.string.pair_second_title)
             b.tvStep.visibility = View.VISIBLE
             b.tvStep.text = getString(R.string.pair_step_second)
             b.tvTimer.visibility = View.GONE
             b.tvWait.visibility = View.GONE
             b.tvPair.visibility = View.VISIBLE
-            preview()
             showNumbers(true)
+            field(b.etNote, true)
             b.etSys.setText("")
             b.etDia.setText("")
             b.etPulse.setText("")
             b.etSys.error = null
             b.etDia.error = null
             b.etPulse.error = null
+            preview()
             showActions()
             b.etSys.requestFocus()
+            val imm = context?.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+            imm?.showSoftInput(b.etSys, InputMethodManager.SHOW_IMPLICIT)
         }
 
-        fun startTimer() {
+        fun startWait(reading: Reading) {
+            firstReading = reading
             pairPhase = 2
+            isWaiting = true
+            hideKeyboard()
+            b.toolbar.setTitle(R.string.pair_wait_title)
             b.tvStep.visibility = View.GONE
-            b.tvPair.visibility = View.VISIBLE
-            preview()
+            showNumbers(false)
+            field(b.etNote, false)
+            b.tvPair.visibility = View.GONE
             b.tvTimer.visibility = View.VISIBLE
             b.tvWait.visibility = View.VISIBLE
             b.tvWait.text = getString(R.string.pair_wait)
-            showNumbers(false)
+            val totalSec = (PAIR_GAP_MS / 1000).toInt()
+            b.tvTimer.text = clock(totalSec)
             showActions()
+            activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
             pairTimer?.cancel()
-            val total = 60_000L
-            pairTimer = object : CountDownTimer(total, 250L) {
-                override fun onTick(left: Long) {
-                    val sec = ((left + 999L) / 1000L).coerceIn(0, 60)
-                    b.tvTimer.text = String.format(Locale.getDefault(), "%02d:%02d", sec / 60, sec % 60)
+            pairTimer = object : CountDownTimer(PAIR_GAP_MS, 250) {
+                override fun onTick(ms: Long) {
+                    if (!isWaiting || pairPhase != 2) return
+                    val sec = ((ms + 999) / 1000).toInt()
+                    b.tvTimer.text = clock(sec)
                 }
+
                 override fun onFinish() {
-                    b.tvTimer.text = "00:00"
+                    if (!isWaiting || pairPhase != 2) return
+                    isWaiting = false
                     playMeasureSignal()
-                    step3()
+                    showSecond()
                 }
             }.start()
         }
@@ -377,15 +456,12 @@ class RecordEditFragment : Fragment() {
         b.btnPrimary.setOnClickListener {
             hideKeyboard()
             when (pairPhase) {
+                0 -> showFirst()
                 1 -> {
                     val r = readingOrNull() ?: return@setOnClickListener
-                    firstReading = r
-                    startTimer()
+                    startWait(r)
                 }
-                2 -> {
-                    stopPairSession()
-                    step3()
-                }
+                2 -> showSecond()
                 3 -> {
                     val second = readingOrNull() ?: return@setOnClickListener
                     val a = firstReading ?: return@setOnClickListener
@@ -436,12 +512,13 @@ class RecordEditFragment : Fragment() {
                 .show()
         }
 
-        step1()
+        // Запуск 5-минутного отдыха покоя при открытии
+        startRest()
     }
 
     fun handleBack() {
         hideKeyboard()
-        if (isPairMode && firstReading != null) {
+        if (isPairMode && firstReading != null && pairPhase >= 2) {
             com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
                 .setTitle(R.string.pair_leave_title)
                 .setMessage(R.string.pair_leave_msg)
@@ -525,6 +602,7 @@ class RecordEditFragment : Fragment() {
     }
 
     private fun stopPairSession() {
+        isWaiting = false
         pairTimer?.cancel()
         pairTimer = null
         pairHandler.removeCallbacksAndMessages(null)
@@ -533,6 +611,7 @@ class RecordEditFragment : Fragment() {
         } catch (_: Exception) {
         }
         pairTone = null
+        activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }
 
     private fun pickWhen(start: Long, onPicked: (Long) -> Unit) {
