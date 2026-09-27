@@ -243,7 +243,7 @@ class MemoFragment : Fragment() {
 
     private var previewPlayer: android.media.MediaPlayer? = null
 
-    private fun showSoundSettingsDialog() {
+        private fun showSoundSettingsDialog() {
         val ctx = requireContext()
         val db = com.arena.bpdiary.databinding.DialogSoundSettingsBinding.inflate(layoutInflater)
 
@@ -282,83 +282,58 @@ class MemoFragment : Fragment() {
             }
         }
 
-        val currentSound = AlertSettings.getSelectedSound(ctx)
-        val selectedId = currentSound.id
+        var isPierceSelected = AlertSettings.getSelectedSound(ctx).isPiercing
 
-        fun updateCategoryVisibility(isPierce: Boolean) {
-            db.containerPierce.visibility = if (isPierce) View.VISIBLE else View.GONE
-            db.containerCalm.visibility = if (!isPierce) View.VISIBLE else View.GONE
+        fun renderSoundList() {
+            db.rgSounds.removeAllViews()
+            val sounds = if (isPierceSelected) AlertSettings.PIERCING_SOUNDS else AlertSettings.CALM_SOUNDS
+            db.tvCategoryDesc.text = if (isPierceSelected) {
+                getString(R.string.sound_category_pierce_desc)
+            } else {
+                getString(R.string.sound_category_calm_desc)
+            }
+            val curId = AlertSettings.getSelectedSoundId(ctx)
+
+            sounds.forEach { opt ->
+                val rb = android.widget.RadioButton(ctx).apply {
+                    id = View.generateViewId()
+                    text = "${opt.title}\n${opt.desc}"
+                    tag = opt.id
+                    textSize = 14f
+                    setPadding(16, 12, 16, 12)
+                    isChecked = opt.id == curId
+                    setOnClickListener {
+                        AlertSettings.setSelectedSoundId(ctx, opt.id)
+                        refreshCurrentSoundLabel()
+                        playPreview(opt.rawResId)
+                        if (db.switchTorch.isChecked && isPierceSelected) {
+                            FlashlightHelper.flash(ctx, count = 3, onMs = 150L, offMs = 100L)
+                        }
+                    }
+                }
+                db.rgSounds.addView(rb)
+            }
         }
 
-        if (currentSound.isPiercing) {
+        if (isPierceSelected) {
             db.toggleCategory.check(R.id.btnCatPierce)
-            updateCategoryVisibility(true)
         } else {
             db.toggleCategory.check(R.id.btnCatCalm)
-            updateCategoryVisibility(false)
         }
+        renderSoundList()
 
         db.toggleCategory.addOnButtonCheckedListener { _, checkedId, isChecked ->
             if (isChecked) {
-                if (checkedId == R.id.btnCatPierce) {
-                    updateCategoryVisibility(true)
-                    db.rgCalm.clearCheck()
-                    val firstPierce = AlertSettings.PIERCING_SOUNDS.first()
-                    AlertSettings.setSelectedSoundId(ctx, firstPierce.id)
-                    (db.rgPiercing.getChildAt(0) as? android.widget.RadioButton)?.isChecked = true
+                val newPierce = checkedId == R.id.btnCatPierce
+                if (newPierce != isPierceSelected) {
+                    isPierceSelected = newPierce
+                    val defaultOption = if (isPierceSelected) AlertSettings.PIERCING_SOUNDS.first() else AlertSettings.CALM_SOUNDS.first()
+                    AlertSettings.setSelectedSoundId(ctx, defaultOption.id)
                     refreshCurrentSoundLabel()
-                    playPreview(firstPierce.rawResId)
-                } else if (checkedId == R.id.btnCatCalm) {
-                    updateCategoryVisibility(false)
-                    db.rgPiercing.clearCheck()
-                    val firstCalm = AlertSettings.CALM_SOUNDS.first()
-                    AlertSettings.setSelectedSoundId(ctx, firstCalm.id)
-                    (db.rgCalm.getChildAt(0) as? android.widget.RadioButton)?.isChecked = true
-                    refreshCurrentSoundLabel()
-                    playPreview(firstCalm.rawResId)
+                    renderSoundList()
+                    playPreview(defaultOption.rawResId)
                 }
             }
-        }
-
-
-
-        // Заполняем пронзительные звуки
-        AlertSettings.PIERCING_SOUNDS.forEach { opt ->
-            val rb = android.widget.RadioButton(ctx).apply {
-                text = "${opt.title}\n${opt.desc}"
-                tag = opt.id
-                textSize = 14f
-                setPadding(16, 12, 16, 12)
-                isChecked = opt.id == selectedId
-                setOnClickListener {
-                    db.rgCalm.clearCheck()
-                    AlertSettings.setSelectedSoundId(ctx, opt.id)
-                    refreshCurrentSoundLabel()
-                    playPreview(opt.rawResId)
-                    if (db.switchTorch.isChecked) {
-                        FlashlightHelper.flash(ctx, count = 3, onMs = 150L, offMs = 100L)
-                    }
-                }
-            }
-            db.rgPiercing.addView(rb)
-        }
-
-        // Заполняем лёгкие звуки
-        AlertSettings.CALM_SOUNDS.forEach { opt ->
-            val rb = android.widget.RadioButton(ctx).apply {
-                text = "${opt.title}\n${opt.desc}"
-                tag = opt.id
-                textSize = 14f
-                setPadding(16, 12, 16, 12)
-                isChecked = opt.id == selectedId
-                setOnClickListener {
-                    db.rgPiercing.clearCheck()
-                    AlertSettings.setSelectedSoundId(ctx, opt.id)
-                    refreshCurrentSoundLabel()
-                    playPreview(opt.rawResId)
-                }
-            }
-            db.rgCalm.addView(rb)
         }
 
         val dialog = MaterialAlertDialogBuilder(ctx)

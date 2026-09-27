@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Диалог выбора звукового сигнала (10 пронзительных + 10 лёгких)
+<!-- Диалог выбора звукового сигнала (строго один звук из выбранной категории)
      и включения световых уведомлений экраном и фонариком -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -56,7 +56,7 @@
                 android:layout_marginBottom="12dp"
                 android:background="@color/bg" />
 
-            <!-- Переключатель категории: только одна активная категория -->
+            <!-- Выбор категории: только одна активная категория -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -94,69 +94,22 @@
                     android:textSize="13sp" />
             </com.google.android.material.button.MaterialButtonToggleGroup>
 
-            <!-- Контейнер категории 1: Пронзительные для пожилых / при проблемах слуха -->
-            <LinearLayout
-                android:id="@+id/containerPierce"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical">
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="sans-serif-medium"
-                    android:text="@string/sound_category_pierce"
-                    android:textColor="@color/catCrisis"
-                    android:textSize="15.5sp" />
-
+            <!-- Пояснение к выбранной категории -->
             <TextView
+                android:id="@+id/tvCategoryDesc"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
                 android:lineSpacingExtra="2dp"
-                android:text="@string/sound_category_pierce_desc"
                 android:textColor="@color/gray"
                 android:textSize="12.5sp" />
 
+            <!-- Единый RadioGroup для всех звуков: технически невозможен множественный выбор! -->
             <RadioGroup
-                android:id="@+id/rgPiercing"
+                android:id="@+id/rgSounds"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp" />
 
-            </LinearLayout>
-
-            <!-- Контейнер категории 2: Лёгкие и расслабляющие -->
-            <LinearLayout
-                android:id="@+id/containerCalm"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:visibility="gone">
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="sans-serif-medium"
-                    android:text="@string/sound_category_calm"
-                    android:textColor="@color/catOptimal"
-                    android:textSize="15.5sp" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:lineSpacingExtra="2dp"
-                android:text="@string/sound_category_calm_desc"
-                android:textColor="@color/gray"
-                android:textSize="12.5sp" />
-
-            <RadioGroup
-                android:id="@+id/rgCalm"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp" />
-            </LinearLayout>
         </LinearLayout>
     </ScrollView>
 </LinearLayout>
