@@ -262,6 +262,26 @@ class MemoFragment : Fragment() {
             AlertSettings.setScreenFlashEnabled(ctx, isChecked)
         }
 
+        fun playPreview(resId: Int) {
+            try {
+                previewPlayer?.stop()
+                previewPlayer?.release()
+            } catch (_: Exception) {
+            }
+            try {
+                previewPlayer = android.media.MediaPlayer.create(ctx, resId).apply {
+                    setAudioAttributes(
+                        android.media.AudioAttributes.Builder()
+                            .setUsage(android.media.AudioAttributes.USAGE_ALARM)
+                            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                            .build()
+                    )
+                    start()
+                }
+            } catch (_: Exception) {
+            }
+        }
+
         val currentSound = AlertSettings.getSelectedSound(ctx)
         val selectedId = currentSound.id
 
@@ -300,25 +320,7 @@ class MemoFragment : Fragment() {
             }
         }
 
-        fun playPreview(resId: Int) {
-            try {
-                previewPlayer?.stop()
-                previewPlayer?.release()
-            } catch (_: Exception) {
-            }
-            try {
-                previewPlayer = android.media.MediaPlayer.create(ctx, resId).apply {
-                    setAudioAttributes(
-                        android.media.AudioAttributes.Builder()
-                            .setUsage(android.media.AudioAttributes.USAGE_ALARM)
-                            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                            .build()
-                    )
-                    start()
-                }
-            } catch (_: Exception) {
-            }
-        }
+
 
         // Заполняем пронзительные звуки
         AlertSettings.PIERCING_SOUNDS.forEach { opt ->
