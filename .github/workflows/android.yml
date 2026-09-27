@@ -136,27 +136,11 @@ jobs:
           sha=$(sha256sum dist/BPDiary-release.apk | awk '{print $1}')
           test "${#sha}" -eq 64
           printf '{"versionCode":%s,"versionName":"%s","sha256":"%s"}\n' "$code" "$name" "$sha" > dist/version.json
-          # Достаём описание изменений текущей версии из README.md
-          changes=$(python3 - << 'PYCHANGES'
-import re
-try:
-    content = open("bp-diary-app/README.md", encoding="utf-8").read()
-    m = re.search(r'\|\s*\*\*([0-9.]+)\*\*\s*\([^)]*\)\s*\|\s*([^|
-]+)\|', content)
-    if m:
-        print(m.group(2).strip())
-    else:
-        print("Плановое обновление и улучшения стабильности.")
-except Exception:
-    print("Плановое обновление и улучшения стабильности.")
-PYCHANGES
-          )
           {
             printf 'versionCode: %s\n' "$code"
             printf 'versionName: %s\n' "$name"
             printf 'sha256: %s\n' "$sha"
-            printf 'changes: %s\n' "$changes"
-            printf 'Что нового в версии %s:\n%s\n\nАвтосборка %s (%s). Подписано постоянным ключом bp-diary-app/keystore/bp-diary.keystore. Обновление ставится поверх без потери данных.\n' "$name" "$changes" "$GITHUB_SHA" "$GITHUB_REF_NAME"
+            printf 'Автосборка %s (%s). Оба файла подписаны постоянным ключом bp-diary-app/keystore/bp-diary.keystore (alias bpdiary). Обновление ставится поверх без удаления данных. Для установки берите BPDiary-release.apk.\n' "$GITHUB_SHA" "$GITHUB_REF_NAME"
           } > dist/release-notes.txt
           repo="$GITHUB_REPOSITORY"
           id=$(gh api "repos/${repo}/releases/tags/latest-apk" --jq .id)

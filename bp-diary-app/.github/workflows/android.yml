@@ -1,3 +1,5 @@
+# Этот файл срабатывает, только если репозиторием является сама папка bp-diary-app.
+# В монорепозитории A-D сборку запускает корневой .github/workflows/android.yml.
 name: Build APK (Дневник АД)
 
 on:
@@ -27,91 +29,32 @@ jobs:
       - name: Платформа Android 34
         run: |
           set -euo pipefail
-          mkdir -p "$GITHUB_WORKSPACE/dist"
-          {
-            echo "ANDROID_HOME=${ANDROID_HOME:-}"
-            echo "ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT:-}"
-            command -v sdkmanager || true
-            : "${ANDROID_HOME:?ANDROID_HOME не задан}"
-            yes | sdkmanager --sdk_root="$ANDROID_HOME" --licenses >/dev/null || true
-            sdkmanager --sdk_root="$ANDROID_HOME" "platforms;android-34" "build-tools;34.0.0"
-            test -d "$ANDROID_HOME/platforms/android-34"
-            test -d "$ANDROID_HOME/build-tools/34.0.0"
-            echo PLATFORM_OK
-          } > "$GITHUB_WORKSPACE/dist/sdk.log" 2>&1
-          cat "$GITHUB_WORKSPACE/dist/sdk.log"
+          : "${ANDROID_HOME:?ANDROID_HOME не задан}"
+          yes | sdkmanager --sdk_root="$ANDROID_HOME" --licenses >/dev/null || true
+          sdkmanager --sdk_root="$ANDROID_HOME" "platforms;android-34" "build-tools;34.0.0"
+          test -d "$ANDROID_HOME/platforms/android-34"
+          test -d "$ANDROID_HOME/build-tools/34.0.0"
 
       - name: Собрать APK постоянным ключом
-        working-directory: bp-diary-app
         run: |
           set -euo pipefail
           test -f keystore/bp-diary.keystore
           chmod +x gradlew
-          # Пароли не передаём: пустой Secret затёр бы ключ.
-          # Gradle сам берёт keystore/bp-diary.keystore и пароль постоянного ключа.
           unset BP_KEYSTORE_PASSWORD BP_KEY_ALIAS BP_KEY_PASSWORD || true
           : "${ANDROID_HOME:?ANDROID_HOME не задан}"
           printf 'sdk.dir=%s\n' "$ANDROID_HOME" > local.properties
-          # Куча из gradle.properties (1G) тесна для AGP 8 на раннере.
           sed -i 's/-Xmx1024m/-Xmx2048m/; s/-XX:MaxMetaspaceSize=384m/-XX:MaxMetaspaceSize=512m/; s/kotlin.daemon.jvmargs=-Xmx512m/kotlin.daemon.jvmargs=-Xmx1024m/' gradle.properties
-          mkdir -p "$GITHUB_WORKSPACE/dist"
+          mkdir -p dist
           set +e
-          ./gradlew assembleDebug assembleRelease --no-daemon --stacktrace \
-            > "$GITHUB_WORKSPACE/dist/gradle.log" 2>&1
+          ./gradlew assembleDebug assembleRelease --no-daemon --stacktrace > dist/gradle.log 2>&1
           code=$?
           set -e
-          tail -n 80 "$GITHUB_WORKSPACE/dist/gradle.log"
+          tail -n 80 dist/gradle.log
           if [ "$code" -ne 0 ]; then
             exit "$code"
           fi
-          cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/dist/BPDiary-debug.apk"
-          cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/dist/BPDiary-release.apk"
-
-      - name: Сохранить лог сборки при ошибке
-        if: failure()
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set +e
-          logf=dist/gradle.log
-          if [ ! -f "$logf" ]; then
-            logf=dist/sdk.log
-          fi
-          if [ ! -f "$logf" ]; then
-            echo "::error::лог сборки не создан"
-            exit 0
-          fi
-          cp "$logf" dist/ci-failure.log
-          # Аннотации читаются через API, даже если архив логов Azure недоступен.
-          grep -E 'FAILURE:|What went wrong|Execution failed|error:|e: |Caused by:|SDK location|Failed to find|Could not|A problem' dist/ci-failure.log \
-            | tail -n 30 \
-            | while IFS= read -r line; do
-                echo "::error::${line}"
-              done
-          python3 - << 'PY'
-          import json, os, urllib.request
-          log = open("dist/ci-failure.log", errors="replace").read().splitlines()
-          keys = ("FAILURE:", "What went wrong", "Execution failed", "error:", "e: ", "Caused by:", "SDK location", "Failed to find", "Could not", "A problem")
-          picked = [l for l in log if any(k in l for k in keys)]
-          body = "Gradle CI failure\n\n```\n" + "\n".join((picked[-40:] + ["---"] + log[-80:])) + "\n```"
-          body = body[-60000:]
-          req = urllib.request.Request(
-              f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/commits/{os.environ['GITHUB_SHA']}/comments",
-              data=json.dumps({"body": body}).encode(),
-              headers={
-                  "Authorization": f"Bearer {os.environ['GH_TOKEN']}",
-                  "Accept": "application/vnd.github+json",
-                  "Content-Type": "application/json",
-                  "X-GitHub-Api-Version": "2022-11-28",
-              },
-              method="POST",
-          )
-          try:
-              with urllib.request.urlopen(req) as resp:
-                  print("comment", resp.status)
-          except Exception as exc:
-              print("comment failed", exc)
-          PY
+          cp app/build/outputs/apk/debug/app-debug.apk dist/BPDiary-debug.apk
+          cp app/build/outputs/apk/release/app-release.apk dist/BPDiary-release.apk
 
       - name: Загрузить артефакт APK
         uses: actions/upload-artifact@v4
@@ -122,111 +65,28 @@ jobs:
           retention-days: 90
 
       - name: Опубликовать APK в Releases
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          # Первые строки читает приложение (AppUpdater). Не убирать versionCode.
-          gradle_file=bp-diary-app/app/build.gradle
-          code=$(sed -n 's/^[[:space:]]*versionCode[[:space:]]*[ =]*\([0-9][0-9]*\).*/\1/p' "$gradle_file" | head -1)
-          name=$(sed -n 's/^[[:space:]]*versionName[[:space:]]*[ =]*"\([^"]*\)".*/\1/p' "$gradle_file" | head -1)
-          echo "::notice::versionCode=${code} versionName=${name}"
+          code=$(sed -n 's/^[[:space:]]*versionCode[[:space:]]*\([0-9][0-9]*\).*/\1/p' app/build.gradle | head -1)
+          name=$(sed -n 's/^[[:space:]]*versionName[[:space:]]*"\([^"]*\)".*/\1/p' app/build.gradle | head -1)
           test -n "$code"
           test -n "$name"
           sha=$(sha256sum dist/BPDiary-release.apk | awk '{print $1}')
           test "${#sha}" -eq 64
           printf '{"versionCode":%s,"versionName":"%s","sha256":"%s"}\n' "$code" "$name" "$sha" > dist/version.json
-          # Достаём описание изменений текущей версии из README.md
-          changes=$(python3 - << 'PYCHANGES'
-import re
-try:
-    content = open("bp-diary-app/README.md", encoding="utf-8").read()
-    m = re.search(r'\|\s*\*\*([0-9.]+)\*\*\s*\([^)]*\)\s*\|\s*([^|
-]+)\|', content)
-    if m:
-        print(m.group(2).strip())
-    else:
-        print("Плановое обновление и улучшения стабильности.")
-except Exception:
-    print("Плановое обновление и улучшения стабильности.")
-PYCHANGES
-          )
           {
             printf 'versionCode: %s\n' "$code"
             printf 'versionName: %s\n' "$name"
             printf 'sha256: %s\n' "$sha"
-            printf 'changes: %s\n' "$changes"
-            printf 'Что нового в версии %s:\n%s\n\nАвтосборка %s (%s). Подписано постоянным ключом bp-diary-app/keystore/bp-diary.keystore. Обновление ставится поверх без потери данных.\n' "$name" "$changes" "$GITHUB_SHA" "$GITHUB_REF_NAME"
+            printf 'Автосборка %s. Подпись — постоянный ключ keystore/bp-diary.keystore (alias bpdiary). Обновление ставится поверх. Ставьте BPDiary-release.apk.\n' "$GITHUB_SHA"
           } > dist/release-notes.txt
-          repo="$GITHUB_REPOSITORY"
-          id=$(gh api "repos/${repo}/releases/tags/latest-apk" --jq .id)
-          echo "::notice::release id=${id}"
-          # Не сносить уже залитую эту же версию: метка и так теряет список файлов,
-          # а лишнее удаление на несколько секунд оставляет телефон без APK.
-          have_body=$(gh api "repos/${repo}/releases/${id}" --jq '.body' | head -1)
-          have_names=$(gh api "repos/${repo}/releases/${id}/assets" --jq '[.[].name] | join(",")')
-          if [ "$have_body" = "versionCode: ${code}" ]; then
-            case ",${have_names}," in
-              *,BPDiary-release.apk,*)
-                echo "::notice::релиз уже содержит ${name}, файлы не трогаю"
-                exit 0
-                ;;
-            esac
-          fi
-          # Сначала чужое имя: если заливка сломана, старые APK не трогаем.
-          # --clobber нельзя: он смотрит список по метке, а тот часто пуст, и команда падает сразу.
-          printf 'canary\n' > "dist/canary-${GITHUB_RUN_ID}.txt"
-          gh release upload latest-apk "dist/canary-${GITHUB_RUN_ID}.txt" --repo "$repo"
-          seen=$(gh api "repos/${repo}/releases/${id}/assets" --jq '[.[].name] | join(",")')
-          echo "::notice::after canary ${seen}"
-          case ",${seen}," in
-            *,"canary-${GITHUB_RUN_ID}.txt",*) ;;
-            *) echo "::error::заливка на релиз не дошла"; exit 1 ;;
-          esac
-          gh api "repos/${repo}/releases/${id}/assets" --jq '.[].id' | while read -r aid; do
-            [ -n "$aid" ] || continue
-            gh api -X DELETE "repos/${repo}/releases/assets/${aid}"
-          done
-          gh release upload latest-apk \
+          gh release delete latest-apk --cleanup-tag --yes || true
+          gh release create latest-apk \
             dist/BPDiary-release.apk \
             dist/BPDiary-debug.apk \
             dist/version.json \
-            --repo "$repo"
-          gh release edit latest-apk \
             --title "Дневник АД — последний APK" \
-            --notes-file dist/release-notes.txt \
-            --repo "$repo"
-          id_names=$(gh api "repos/${repo}/releases/${id}/assets" --jq '[.[].name] | join(",")')
-          body=$(gh api "repos/${repo}/releases/${id}" --jq '.body' | head -1)
-          tag_names=$(gh api \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            -H "User-Agent: BPDiary" \
-            "repos/${repo}/releases/tags/latest-apk" \
-            --jq '[.assets[].name] | join(",")' || true)
-          echo "::notice::id=${id_names}"
-          echo "::notice::tag=${tag_names}"
-          echo "::notice::body=${body}"
-          curl -s -X POST \
-            -H "Authorization: Bearer ${GH_TOKEN}" \
-            -H "Accept: application/vnd.github+json" \
-            -H "Content-Type: application/json" \
-            "https://api.github.com/repos/${repo}/commits/${GITHUB_SHA}/comments" \
-            -d "{\"body\":\"ID=${id_names} TAG=${tag_names} BODY=${body}\"}" || true
-          case ",${id_names}," in
-            *,BPDiary-release.apk,*) ;;
-            *) echo "::error::APK нет на релизе"; exit 1 ;;
-          esac
-          case ",${tag_names}," in
-            *,BPDiary-release.apk,*) echo "::notice::телефон видит ${name}" ;;
-            *) echo "::error::Файл залит, но метка latest-apk его не показывает. Текущая версия на телефоне обновление не увидит."; exit 1 ;;
-          esac
-
-      - name: Краткий итог
-        run: |
-          {
-            echo "### APK собран постоянным ключом"
-            echo "Скачать: артефакт **BPDiary-APK** и релиз \`latest-apk\`."
-            echo "Ключ не менять: \`bp-diary-app/keystore/bp-diary.keystore\`."
-            echo "Установленное приложение само проверяет релиз \`latest-apk\` и предлагает более новый versionCode."
-          } >> "$GITHUB_STEP_SUMMARY"
+            --notes-file dist/release-notes.txt
