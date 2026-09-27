@@ -237,8 +237,13 @@ class MemoFragment : Fragment() {
     private fun refreshCurrentSoundLabel() {
         if (_b == null) return
         val current = AlertSettings.getSelectedSound(requireContext())
-        val torch = if (AlertSettings.isTorchFlashEnabled(requireContext())) "вспышка включена" else "вспышка выкл"
-        b.tvCurrentSound.text = getString(R.string.sound_selected_fmt, "${current.title} ($torch)")
+        val catName = if (current.isPiercing) "Категория: Для пожилых" else "Категория: Лёгкие / релакс"
+        val lightParts = mutableListOf<String>()
+        if (AlertSettings.isTorchFlashEnabled(requireContext())) lightParts.add("фонарик")
+        if (AlertSettings.isScreenFlashEnabled(requireContext())) lightParts.add("экран")
+        val lightStr = if (lightParts.isNotEmpty()) lightParts.joinToString("+") else "выкл"
+        
+        b.tvCurrentSound.text = "$catName\nСигнал: ${current.title}\nСвет: $lightStr"
     }
 
     private var previewPlayer: android.media.MediaPlayer? = null
