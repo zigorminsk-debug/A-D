@@ -408,4 +408,11 @@
     <string name="sound_listen">Прослушать</string>
     <string name="sound_stop">Стоп</string>
     <string name="sound_selected_fmt">Выбран сигнал: %1$s</string>
+<string name="update_ready_title">Доступно обновление %1$s</string>
+    <string name="update_ready_whats_new">Что нового в обновлении:</string>
+    <string name="update_ready_btn_install">Установить сейчас</string>
+    <string name="update_ready_btn_later">Позже</string>
+<string name="sound_category_select_title">Категория звуков (выберите одну):</string>
+    <string name="sound_tab_pierce">Для пожилых</string>
+    <string name="sound_tab_calm">Лёгкие / релакс</string>
 </resources>

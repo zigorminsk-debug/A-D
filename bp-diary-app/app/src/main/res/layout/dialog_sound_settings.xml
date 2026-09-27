@@ -56,14 +56,58 @@
                 android:layout_marginBottom="12dp"
                 android:background="@color/bg" />
 
-            <!-- Категория 1: Пронзительные для пожилых / при проблемах слуха -->
+            <!-- Переключатель категории: только одна активная категория -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:fontFamily="sans-serif-medium"
-                android:text="@string/sound_category_pierce"
-                android:textColor="@color/catCrisis"
-                android:textSize="15.5sp" />
+                android:text="@string/sound_category_select_title"
+                android:textColor="@color/primary"
+                android:textSize="15sp" />
+
+            <com.google.android.material.button.MaterialButtonToggleGroup
+                android:id="@+id/toggleCategory"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="12dp"
+                app:checkedButton="@+id/btnCatPierce"
+                app:selectionRequired="true"
+                app:singleSelection="true">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnCatPierce"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/sound_tab_pierce"
+                    android:textSize="13sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnCatCalm"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/sound_tab_calm"
+                    android:textSize="13sp" />
+            </com.google.android.material.button.MaterialButtonToggleGroup>
+
+            <!-- Контейнер категории 1: Пронзительные для пожилых / при проблемах слуха -->
+            <LinearLayout
+                android:id="@+id/containerPierce"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif-medium"
+                    android:text="@string/sound_category_pierce"
+                    android:textColor="@color/catCrisis"
+                    android:textSize="15.5sp" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -80,21 +124,23 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp" />
 
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginTop="14dp"
-                android:layout_marginBottom="12dp"
-                android:background="@color/bg" />
+            </LinearLayout>
 
-            <!-- Категория 2: Лёгкие и расслабляющие -->
-            <TextView
+            <!-- Контейнер категории 2: Лёгкие и расслабляющие -->
+            <LinearLayout
+                android:id="@+id/containerCalm"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:fontFamily="sans-serif-medium"
-                android:text="@string/sound_category_calm"
-                android:textColor="@color/catOptimal"
-                android:textSize="15.5sp" />
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif-medium"
+                    android:text="@string/sound_category_calm"
+                    android:textColor="@color/catOptimal"
+                    android:textSize="15.5sp" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -110,6 +156,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp" />
+            </LinearLayout>
         </LinearLayout>
     </ScrollView>
 </LinearLayout>

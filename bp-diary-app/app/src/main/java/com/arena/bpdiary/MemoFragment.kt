@@ -262,7 +262,43 @@ class MemoFragment : Fragment() {
             AlertSettings.setScreenFlashEnabled(ctx, isChecked)
         }
 
-        val selectedId = AlertSettings.getSelectedSoundId(ctx)
+        val currentSound = AlertSettings.getSelectedSound(ctx)
+        val selectedId = currentSound.id
+
+        fun updateCategoryVisibility(isPierce: Boolean) {
+            db.containerPierce.visibility = if (isPierce) View.VISIBLE else View.GONE
+            db.containerCalm.visibility = if (!isPierce) View.VISIBLE else View.GONE
+        }
+
+        if (currentSound.isPiercing) {
+            db.toggleCategory.check(R.id.btnCatPierce)
+            updateCategoryVisibility(true)
+        } else {
+            db.toggleCategory.check(R.id.btnCatCalm)
+            updateCategoryVisibility(false)
+        }
+
+        db.toggleCategory.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (isChecked) {
+                if (checkedId == R.id.btnCatPierce) {
+                    updateCategoryVisibility(true)
+                    db.rgCalm.clearCheck()
+                    val firstPierce = AlertSettings.PIERCING_SOUNDS.first()
+                    AlertSettings.setSelectedSoundId(ctx, firstPierce.id)
+                    (db.rgPiercing.getChildAt(0) as? android.widget.RadioButton)?.isChecked = true
+                    refreshCurrentSoundLabel()
+                    playPreview(firstPierce.rawResId)
+                } else if (checkedId == R.id.btnCatCalm) {
+                    updateCategoryVisibility(false)
+                    db.rgPiercing.clearCheck()
+                    val firstCalm = AlertSettings.CALM_SOUNDS.first()
+                    AlertSettings.setSelectedSoundId(ctx, firstCalm.id)
+                    (db.rgCalm.getChildAt(0) as? android.widget.RadioButton)?.isChecked = true
+                    refreshCurrentSoundLabel()
+                    playPreview(firstCalm.rawResId)
+                }
+            }
+        }
 
         fun playPreview(resId: Int) {
             try {

@@ -56,6 +56,7 @@ object AppUpdater {
     private const val KEY_OFFERED = "offered"
     private const val KEY_INSTALLER = "installer_shown"
     private const val KEY_SETTINGS = "settings_opened"
+    private const val KEY_CHANGES = "changes_text"
     private const val CHECK_MS = 30L * 60L * 1000L
     private const val ASK_MS = 3L * 24L * 60L * 60L * 1000L
     private const val MAX_BYTES = 40_000_000
@@ -208,6 +209,7 @@ object AppUpdater {
                         prefs(app).edit()
                             .putBoolean(KEY_READY, true)
                             .putInt(KEY_READY_CODE, result.code)
+                            .putString(KEY_CHANGES, result.changes)
                             .putBoolean(KEY_INSTALLER, false)
                             .apply()
                         ui {
@@ -300,6 +302,33 @@ object AppUpdater {
             }
             return
         }
+        val changes = prefs(activity).getString(KEY_CHANGES, "").orEmpty()
+        val pkgInfo = try {
+            activity.packageManager.getPackageArchiveInfo(apk.absolutePath, 0)
+        } catch (_: Exception) { null }
+        val verName = pkgInfo?.versionName ?: "новая версия"
+
+        if (changes.isNotBlank() && activity is AppCompatActivity && !activity.isFinishing && !activity.isDestroyed) {
+            val message = "${activity.getString(R.string.update_ready_whats_new)}\n\n$changes\n\n${activity.getString(R.string.update_confirm_install)}"
+            MaterialAlertDialogBuilder(activity)
+                .setTitle(activity.getString(R.string.update_ready_title, verName))
+                .setMessage(message)
+                .setPositiveButton(R.string.update_ready_btn_install) { _, _ ->
+                    prefs(activity).edit()
+                        .putBoolean(KEY_SETTINGS, false)
+                        .putBoolean(KEY_INSTALLER, true)
+                        .putInt(KEY_OFFERED, apkCode)
+                        .apply()
+                    if (!launchInstaller(activity, apk)) {
+                        prefs(activity).edit().putBoolean(KEY_INSTALLER, false).apply()
+                        toast(activity, R.string.update_fail_install)
+                    }
+                }
+                .setNegativeButton(R.string.update_ready_btn_later, null)
+                .show()
+            return
+        }
+
         prefs(activity).edit()
             .putBoolean(KEY_SETTINGS, false)
             .putBoolean(KEY_INSTALLER, true)
@@ -408,7 +437,7 @@ object AppUpdater {
         if (version.code <= localCode(ctx)) return Check.Current
         val apk = assets.firstOrNull { it.name == APK_NAME }
             ?: return Check.Bad(R.string.update_no_asset)
-        return Check.Update(version.code, version.name, apk, version.sha)
+        return Check.Update(version.code, version.name, apk, version.sha, version.changes)
     }
 
     private fun fetchMeta(asset: Asset, token: String): Ver? {
@@ -857,11 +886,11 @@ object AppUpdater {
     }
 
     private data class Asset(val name: String, val apiUrl: String, val browserUrl: String, val size: Long)
-    private data class Ver(val code: Int, val name: String, val sha: String)
+    private data class Ver(val code: Int, val name: String, val sha: String, val changes: String = "")
     private data class HttpText(val code: Int, val text: String)
 
     private sealed class Check {
-        data class Update(val code: Int, val name: String, val asset: Asset, val sha: String) : Check()
+        data class Update(val code: Int, val name: String, val asset: Asset, val sha: String, val changes: String = "") : Check()
         object Current : Check()
         object NeedToken : Check()
         data class Bad(val msg: Int, val askToken: Boolean = false) : Check()
