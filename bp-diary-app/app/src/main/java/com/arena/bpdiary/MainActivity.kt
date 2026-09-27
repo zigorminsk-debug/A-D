@@ -159,10 +159,13 @@ class MainActivity : AppCompatActivity() {
     private fun handleReminderIntent(intent: android.content.Intent?) {
         if (intent == null || !::b.isInitialized) return
         val tab = intent.getIntExtra(EXTRA_OPEN_TAB, 0)
-        if (tab != 0) {
-            b.bottomNav.select(tab, notify = true)
-        }
-        if (intent.getBooleanExtra(EXTRA_OPEN_NEW_RECORD, false)) {
+        val openNewRecord = intent.getBooleanExtra(EXTRA_OPEN_NEW_RECORD, false)
+
+        // По требованию: при напоминании открывается главная страница дневника
+        // с блоком «Сегодня» и отметками о принятии лекарства («Принял» / «Пропустил»)
+        b.bottomNav.select(R.id.action_diary, notify = true)
+
+        if (openNewRecord) {
             val f = supportFragmentManager.findFragmentById(R.id.container)
             if (f is DiaryFragment) {
                 f.view?.post { f.openNewRecordDialog() }

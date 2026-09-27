@@ -26,7 +26,7 @@ object Notifications {
      * Новый id: звук канала нельзя поменять у уже созданного «med_reminders».
      * Иначе обновление осталось бы без сигнала.
      */
-    const val MED_CHANNEL_ID = "med_reminders_v3"
+    const val MED_CHANNEL_ID = "med_reminders_v4"
     private const val OLD_MED_CHANNEL_ID = "med_reminders"
 
     private val medVibration = longArrayOf(0, 400, 180, 400, 180, 600)
@@ -54,14 +54,13 @@ object Notifications {
             nm.createNotificationChannel(ch)
 
             nm.deleteNotificationChannel(OLD_MED_CHANNEL_ID)
-            val currentSoundUri = AlertSettings.getSoundUri(ctx)
             val med = NotificationChannel(
                 MED_CHANNEL_ID,
                 ctx.getString(R.string.med_channel_name),
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = ctx.getString(R.string.med_channel_desc)
-                setSound(currentSoundUri, alarmAttributes())
+                setSound(null, null)
                 enableVibration(true)
                 vibrationPattern = medVibration
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC
@@ -213,10 +212,20 @@ object Notifications {
             false
         }
         try {
-            val ringtone: Ringtone? = RingtoneManager.getRingtone(ctx.applicationContext, AlertSettings.getSoundUri(ctx))
-            ringtone?.audioAttributes = alarmAttributes()
-            ringtone?.play()
+            val mp = android.media.MediaPlayer().apply {
+                setAudioAttributes(alarmAttributes())
+                setDataSource(ctx.applicationContext, AlertSettings.getSoundUri(ctx))
+                prepare()
+                start()
+                setOnCompletionListener { it.release() }
+            }
         } catch (_: Exception) {
+            try {
+                val ringtone: Ringtone? = RingtoneManager.getRingtone(ctx.applicationContext, AlertSettings.getSoundUri(ctx))
+                ringtone?.audioAttributes = alarmAttributes()
+                ringtone?.play()
+            } catch (_: Exception) {
+            }
         }
         try {
             if (Build.VERSION.SDK_INT >= 31) {

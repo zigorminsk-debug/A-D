@@ -23,10 +23,12 @@ class AlarmReceiver : BroadcastReceiver() {
                 "med" -> {
                     val name = intent.getStringExtra("name") ?: ""
                     val dose = intent.getStringExtra("dose") ?: ""
+                    // Звук канала воспроизводится только на Android < 8.0,
+                    // а на Android 8+ мы играем звук через Notifications.playMedSignal,
+                    // чтобы исключить одновременное наложение двух звуков!
                     Notifications.showMed(context, id, name, dose, hour, minute)
                     Notifications.playMedSignal(context)
                     hold = true
-                    // Регулярный суточный будильник перезапускаем только если это был плановый вызов, а не snooze
                     if (!isSnooze) {
                         ReminderScheduler.scheduleMedSlot(context, id, hour, minute, name, dose)
                     }
@@ -40,6 +42,8 @@ class AlarmReceiver : BroadcastReceiver() {
                         hour,
                         minute
                     )
+                    Notifications.playMedSignal(context)
+                    hold = true
                     if (!isSnooze) {
                         ReminderScheduler.schedule(context, Reminder(id, hour, minute, true, ""))
                     }

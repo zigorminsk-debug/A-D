@@ -113,7 +113,6 @@ class ReminderBannerActivity : AppCompatActivity() {
     }
 
     private fun triggerScreenPulse() {
-        // Задаём максимальную яркость экрана на время оповещения
         try {
             val lp = window.attributes
             lp.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_FULL
@@ -122,14 +121,20 @@ class ReminderBannerActivity : AppCompatActivity() {
         }
 
         val flashView = b.viewScreenFlash
+        val root = b.root
+        val origBg = root.background
+        val flashColor = 0xF5FFFFFF.toInt()
         val handler = Handler(Looper.getMainLooper())
-        // Серия из 5 ярких белых световых импульсов на весь дисплей
+
+        // 5 мощных полноэкранных белых стробоскопических импульсов
         for (i in 0 until 5) {
             handler.postDelayed({
-                flashView.setBackgroundColor(0xF0FFFFFF.toInt())
+                flashView.setBackgroundColor(flashColor)
+                flashView.alpha = 1.0f
                 handler.postDelayed({
                     flashView.setBackgroundColor(0x00000000)
-                }, 200L)
+                    flashView.alpha = 0.0f
+                }, 220L)
             }, i * 450L)
         }
     }

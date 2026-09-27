@@ -8,13 +8,6 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- Полноэкранный слой световой вспышки/пульса экраном для привлечения внимания глухих/слабослышащих -->
-    <View
-        android:id="@+id/viewScreenFlash"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#00000000" />
-
     <FrameLayout
         android:id="@+id/bannerContent"
         android:layout_width="match_parent"
@@ -142,4 +135,13 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
     </FrameLayout>
+
+    <!-- Полноэкранный световой слой поверх всего окна (пропускает все клики к кнопкам) -->
+    <View
+        android:id="@+id/viewScreenFlash"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#00000000"
+        android:clickable="false"
+        android:focusable="false" />
 </FrameLayout>
