@@ -39,16 +39,16 @@ object AlertSettings {
     )
 
     val CALM_SOUNDS = listOf(
-        SoundOption("calm_1", "1. Тёплая маримба", "Мягкие деревянные пластинки (до - ми - соль)", R.raw.sound_calm_1_marimba, false),
-        SoundOption("calm_2", "2. Нежные колокольчики", "Серебристый перезвон на ветру", R.raw.sound_calm_2_chime, false),
-        SoundOption("calm_3", "3. Струнная арфа", "Плавное арпеджио струн", R.raw.sound_calm_3_harp, false),
-        SoundOption("calm_4", "4. Капли росы", "Кристальные водяные капли", R.raw.sound_calm_4_drop, false),
-        SoundOption("calm_5", "5. Медитативный колокол", "Тёплый глубокий звук 528 Гц", R.raw.sound_calm_5_warmbell, false),
-        SoundOption("calm_6", "6. Хрустальная челеста", "Сказочные лёгкие переливы", R.raw.sound_calm_6_celesta, false),
-        SoundOption("calm_7", "7. Фортепиано", "Спокойное светлое мажорное созвучие", R.raw.sound_calm_7_piano, false),
-        SoundOption("calm_8", "8. Утренний рассвет", "Восходящий мягкий мотив", R.raw.sound_calm_8_sunrise, false),
-        SoundOption("calm_9", "9. Спокойная флейта", "Мягкий природный тембр с вибрато", R.raw.sound_calm_9_flute, false),
-        SoundOption("calm_10", "10. Поющая чаша (Дзен)", "Гармоничный тон 432 Гц", R.raw.sound_calm_10_zen, false)
+        SoundOption("calm_1", "1. Рассвет в саду (маримба и струнные)", "Маримба с аккордами струнного оркестра и флейтой", R.raw.sound_calm_1_marimba, false),
+        SoundOption("calm_2", "2. Серебряные колокольчики", "Перезвон челесты, глокеншпиля и мягких скрипок", R.raw.sound_calm_2_chime, false),
+        SoundOption("calm_3", "3. Кельтская арфа и флейта", "Воздушное арпеджио арфы со струнным ансамблем", R.raw.sound_calm_3_harp, false),
+        SoundOption("calm_4", "4. Капли росы и Rhodes", "Кристальные капли с тёплым электропиано и маримбой", R.raw.sound_calm_4_drop, false),
+        SoundOption("calm_5", "5. Тёплый колокол (528 Гц)", "Медитативный колокол 528 Гц со струнной подложкой", R.raw.sound_calm_5_warmbell, false),
+        SoundOption("calm_6", "6. Хрустальная челеста и рояль", "Фортепианная гармония со звонкими переливами челесты", R.raw.sound_calm_6_celesta, false),
+        SoundOption("calm_7", "7. Концертный рояль", "Богатое мажорное фортепиано со струнным оркестром", R.raw.sound_calm_7_piano, false),
+        SoundOption("calm_8", "8. Утренний рассвет (гитара и флейта)", "Акустический перебор гитары, Rhodes и нежная флейта", R.raw.sound_calm_8_sunrise, false),
+        SoundOption("calm_9", "9. Лесная флейта и струнный квартет", "Мелодия флейты в окружении арфы и струнных", R.raw.sound_calm_9_flute, false),
+        SoundOption("calm_10", "10. Гармония Дзен (432 Гц)", "Тибетская поющая чаша 432 Гц, челеста и колокольчики", R.raw.sound_calm_10_zen, false)
     )
 
     val ALL_SOUNDS = PIERCING_SOUNDS + CALM_SOUNDS
