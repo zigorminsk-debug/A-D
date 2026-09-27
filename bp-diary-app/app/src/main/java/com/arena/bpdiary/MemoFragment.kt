@@ -89,6 +89,8 @@ class MemoFragment : Fragment() {
         b.btnBackup.setOnClickListener { saveBackup.launch("bp-diary-backup.json") }
                 b.btnRestore.setOnClickListener { openBackup.launch(arrayOf("*/*")) }
         b.btnTestBanner.setOnClickListener { showTestBannerDialog() }
+                b.btnSoundSettings.setOnClickListener { showSoundSettingsDialog() }
+        refreshCurrentSoundLabel()
         b.btnUpdate.setOnClickListener {
             (activity as? androidx.appcompat.app.AppCompatActivity)?.let { AppUpdater.start(it, manual = true) }
         }
@@ -230,6 +232,115 @@ class MemoFragment : Fragment() {
         )
 
         Toast.makeText(requireContext(), R.string.test_banner_scheduled_toast, Toast.LENGTH_LONG).show()
+    }
+
+    private fun refreshCurrentSoundLabel() {
+        if (_b == null) return
+        val current = AlertSettings.getSelectedSound(requireContext())
+        val torch = if (AlertSettings.isTorchFlashEnabled(requireContext())) "вспышка включена" else "вспышка выкл"
+        b.tvCurrentSound.text = getString(R.string.sound_selected_fmt, "${current.title} ($torch)")
+    }
+
+    private var previewPlayer: android.media.MediaPlayer? = null
+
+    private fun showSoundSettingsDialog() {
+        val ctx = requireContext()
+        val db = com.arena.bpdiary.databinding.DialogSoundSettingsBinding.inflate(layoutInflater)
+
+        db.switchTorch.isChecked = AlertSettings.isTorchFlashEnabled(ctx)
+        db.switchScreen.isChecked = AlertSettings.isScreenFlashEnabled(ctx)
+
+        db.switchTorch.setOnCheckedChangeListener { _, isChecked ->
+            AlertSettings.setTorchFlashEnabled(ctx, isChecked)
+            refreshCurrentSoundLabel()
+            if (isChecked) {
+                FlashlightHelper.flash(ctx, count = 3, onMs = 150L, offMs = 120L)
+            }
+        }
+
+        db.switchScreen.setOnCheckedChangeListener { _, isChecked ->
+            AlertSettings.setScreenFlashEnabled(ctx, isChecked)
+        }
+
+        val selectedId = AlertSettings.getSelectedSoundId(ctx)
+
+        fun playPreview(resId: Int) {
+            try {
+                previewPlayer?.stop()
+                previewPlayer?.release()
+            } catch (_: Exception) {
+            }
+            try {
+                previewPlayer = android.media.MediaPlayer.create(ctx, resId).apply {
+                    setAudioAttributes(
+                        android.media.AudioAttributes.Builder()
+                            .setUsage(android.media.AudioAttributes.USAGE_ALARM)
+                            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                            .build()
+                    )
+                    start()
+                }
+            } catch (_: Exception) {
+            }
+        }
+
+        // Заполняем пронзительные звуки
+        AlertSettings.PIERCING_SOUNDS.forEach { opt ->
+            val rb = android.widget.RadioButton(ctx).apply {
+                text = "${opt.title}\n${opt.desc}"
+                tag = opt.id
+                textSize = 14f
+                setPadding(16, 12, 16, 12)
+                isChecked = opt.id == selectedId
+                setOnClickListener {
+                    db.rgCalm.clearCheck()
+                    AlertSettings.setSelectedSoundId(ctx, opt.id)
+                    refreshCurrentSoundLabel()
+                    playPreview(opt.rawResId)
+                    if (db.switchTorch.isChecked) {
+                        FlashlightHelper.flash(ctx, count = 3, onMs = 150L, offMs = 100L)
+                    }
+                }
+            }
+            db.rgPiercing.addView(rb)
+        }
+
+        // Заполняем лёгкие звуки
+        AlertSettings.CALM_SOUNDS.forEach { opt ->
+            val rb = android.widget.RadioButton(ctx).apply {
+                text = "${opt.title}\n${opt.desc}"
+                tag = opt.id
+                textSize = 14f
+                setPadding(16, 12, 16, 12)
+                isChecked = opt.id == selectedId
+                setOnClickListener {
+                    db.rgPiercing.clearCheck()
+                    AlertSettings.setSelectedSoundId(ctx, opt.id)
+                    refreshCurrentSoundLabel()
+                    playPreview(opt.rawResId)
+                }
+            }
+            db.rgCalm.addView(rb)
+        }
+
+        val dialog = MaterialAlertDialogBuilder(ctx)
+            .setTitle(R.string.sound_dialog_title)
+            .setView(db.root)
+            .setPositiveButton(R.string.about_back) { _, _ -> }
+            .create()
+
+        dialog.setOnDismissListener {
+            try {
+                previewPlayer?.stop()
+                previewPlayer?.release()
+            } catch (_: Exception) {
+            }
+            previewPlayer = null
+            FlashlightHelper.stop()
+            Notifications.ensureChannel(ctx)
+        }
+
+        dialog.show()
     }
 
     private fun writeBackup(uri: Uri) {

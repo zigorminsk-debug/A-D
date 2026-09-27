@@ -394,4 +394,18 @@
 <string name="record_time_title">Дата и время замера</string>
     <string name="record_bp_title">Показатели артериального давления</string>
     <string name="record_saved_short">Показатели сохранены</string>
+<string name="sound_settings_title">Звуковые и световые сигналы</string>
+    <string name="sound_settings_desc">Выбор мелодии напоминания, пронзительные звуки для пожилых и вспышка фонариком для слабослышащих</string>
+    <string name="btn_sound_settings">Настроить сигнал и вспышку</string>
+    <string name="sound_dialog_title">Настройка напоминаний</string>
+    <string name="sound_category_pierce">Для пожилых и при проблемах слуха</string>
+    <string name="sound_category_pierce_desc">Пронзительные звуки (500–1000 Гц), которые лучше всего воспринимаются возрастным слухом</string>
+    <string name="sound_category_calm">Лёгкие и расслабляющие</string>
+    <string name="sound_category_calm_desc">Мягкие природные переливы, колокольчики и маримба</string>
+    <string name="sound_light_title">Световые уведомления</string>
+    <string name="sound_opt_torch">Вспышка фонариком (для глухих и слабослышащих)</string>
+    <string name="sound_opt_screen">Световой пульс экраном при напоминании</string>
+    <string name="sound_listen">Прослушать</string>
+    <string name="sound_stop">Стоп</string>
+    <string name="sound_selected_fmt">Выбран сигнал: %1$s</string>
 </resources>

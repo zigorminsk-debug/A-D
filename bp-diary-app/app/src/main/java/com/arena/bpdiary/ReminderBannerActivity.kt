@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -58,6 +60,11 @@ class ReminderBannerActivity : AppCompatActivity() {
             b.tvActionHint.text = getString(R.string.reminder_banner_action_measure)
         }
 
+        // Световой пульс экраном при появлении баннера (если включено в настройках)
+        if (AlertSettings.isScreenFlashEnabled(this)) {
+            triggerScreenPulse()
+        }
+
         b.btnOpen.setOnClickListener {
             // Закрываем уведомление в шторке
             try {
@@ -103,6 +110,21 @@ class ReminderBannerActivity : AppCompatActivity() {
         // Клик по фону вне карточки также закрывает баннер
         b.root.setOnClickListener { finishAndRemoveTask() }
         b.cardReminder.setOnClickListener { /* не закрывать при клике на саму карточку */ }
+    }
+
+    private fun triggerScreenPulse() {
+        val root = b.root
+        val origBg = root.background
+        val whiteBg = android.graphics.drawable.ColorDrawable(0xCCFFFFFF.toInt())
+        val handler = Handler(Looper.getMainLooper())
+        for (i in 0 until 4) {
+            handler.postDelayed({
+                root.background = whiteBg
+                handler.postDelayed({
+                    root.background = origBg
+                }, 180L)
+            }, i * 400L)
+        }
     }
 
     private fun wakeScreen() {

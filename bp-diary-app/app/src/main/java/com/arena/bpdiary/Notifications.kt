@@ -26,13 +26,12 @@ object Notifications {
      * Новый id: звук канала нельзя поменять у уже созданного «med_reminders».
      * Иначе обновление осталось бы без сигнала.
      */
-    const val MED_CHANNEL_ID = "med_reminders_v2"
+    const val MED_CHANNEL_ID = "med_reminders_v3"
     private const val OLD_MED_CHANNEL_ID = "med_reminders"
 
     private val medVibration = longArrayOf(0, 400, 180, 400, 180, 600)
 
-    fun medSoundUri(ctx: Context): Uri =
-        Uri.parse("android.resource://${ctx.packageName}/${R.raw.med_signal}")
+    fun medSoundUri(ctx: Context): Uri = AlertSettings.getSoundUri(ctx)
 
     private fun alarmAttributes() = AudioAttributes.Builder()
         .setUsage(AudioAttributes.USAGE_ALARM)
@@ -55,13 +54,14 @@ object Notifications {
             nm.createNotificationChannel(ch)
 
             nm.deleteNotificationChannel(OLD_MED_CHANNEL_ID)
+            val currentSoundUri = AlertSettings.getSoundUri(ctx)
             val med = NotificationChannel(
                 MED_CHANNEL_ID,
                 ctx.getString(R.string.med_channel_name),
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = ctx.getString(R.string.med_channel_desc)
-                setSound(medSoundUri(ctx), alarmAttributes())
+                setSound(currentSoundUri, alarmAttributes())
                 enableVibration(true)
                 vibrationPattern = medVibration
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC
@@ -213,7 +213,7 @@ object Notifications {
             false
         }
         try {
-            val ringtone: Ringtone? = RingtoneManager.getRingtone(ctx.applicationContext, medSoundUri(ctx))
+            val ringtone: Ringtone? = RingtoneManager.getRingtone(ctx.applicationContext, AlertSettings.getSoundUri(ctx))
             ringtone?.audioAttributes = alarmAttributes()
             ringtone?.play()
         } catch (_: Exception) {
@@ -234,6 +234,12 @@ object Notifications {
             }
         } catch (_: Exception) {
         }
+
+        // Если включена вспышка фонариком — подаём серию световых вспышек
+        if (AlertSettings.isTorchFlashEnabled(ctx)) {
+            FlashlightHelper.flash(ctx, count = 6, onMs = 220L, offMs = 150L)
+        }
+
         return silent
     }
 }
