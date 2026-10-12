@@ -125,8 +125,39 @@ object ReminderScheduler {
         med.times.forEach { cancel(ctx, it.id) }
     }
 
+    fun cancelAllMeds(ctx: Context) {
+        Store(ctx).meds().forEach { med ->
+            med.times.forEach { cancel(ctx, it.id) }
+        }
+    }
+
     fun rescheduleAllMeds(ctx: Context) {
-        Store(ctx).meds().forEach { scheduleMedAll(ctx, it) }
+        val meds = Store(ctx).meds()
+        // Группируем по уникальным точкам времени (час:минута)
+        // Чтобы на одно и то же время не ставилось несколько отдельных будильников
+        val timeSlots = mutableMapOf<Pair<Int, Int>, MutableList<Pair<Med, MedTime>>>()
+        for (m in meds) {
+            if (!m.enabled) continue
+            for (t in m.times) {
+                if (!t.enabled) continue
+                timeSlots.getOrPut(t.hour to t.minute) { mutableListOf() }.add(m to t)
+            }
+        }
+
+        // Для каждого времени ставим РОВНО ОДИН будильник
+        for ((hm, list) in timeSlots) {
+            val (hour, minute) = hm
+            val primarySlotId = list.first().second.id
+            val names = if (list.size == 1) {
+                list.first().first.name
+            } else {
+                list.joinToString(" + ") { (m, _) ->
+                    if (m.dose.isNotBlank()) "${m.name} (${m.dose})" else m.name
+                }
+            }
+            val dose = if (list.size == 1) list.first().first.dose else ""
+            scheduleMedSlot(ctx, primarySlotId, hour, minute, names, dose)
+        }
     }
 
     // ---------- Общее ----------

@@ -47,8 +47,14 @@ class ReminderBannerActivity : AppCompatActivity() {
         val timeStr = String.format(Locale.getDefault(), "%02d:%02d", hour, minute)
         b.tvTime.text = timeStr
 
+        val medCount = intent.getIntExtra(EXTRA_MED_COUNT, 1)
+
         if (type == TYPE_MED) {
-            b.tvBadge.text = getString(R.string.reminder_banner_badge_med)
+            if (medCount > 1) {
+                b.tvBadge.text = getString(R.string.reminder_banner_badge_meds_multi, medCount)
+            } else {
+                b.tvBadge.text = getString(R.string.reminder_banner_badge_med)
+            }
             b.ivIcon.setImageResource(R.drawable.ic_pill)
             val titleText = if (dose.isNotBlank()) "$name ($dose)" else name
             b.tvTitle.text = getString(R.string.notif_med_title_fmt, titleText)
@@ -74,11 +80,9 @@ class ReminderBannerActivity : AppCompatActivity() {
 
             val main = Intent(this, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-                if (type == TYPE_MED) {
-                    putExtra(MainActivity.EXTRA_OPEN_TAB, R.id.action_meds)
-                    putExtra(MainActivity.EXTRA_MED_ID, id)
-                } else {
-                    putExtra(MainActivity.EXTRA_OPEN_TAB, R.id.action_diary)
+                // Всегда открываем главную страницу (Дневник), где сверху виден блок текущего приёма с «Принял»/«Пропустил»
+                putExtra(MainActivity.EXTRA_OPEN_TAB, R.id.action_diary)
+                if (type != TYPE_MED) {
                     putExtra(MainActivity.EXTRA_OPEN_NEW_RECORD, true)
                 }
             }
@@ -170,6 +174,8 @@ class ReminderBannerActivity : AppCompatActivity() {
         const val TYPE_MEASURE = "measure"
         const val TYPE_MED = "med"
 
+        const val EXTRA_MED_COUNT = "med_count"
+
         fun createIntent(
             ctx: Context,
             type: String,
@@ -177,7 +183,8 @@ class ReminderBannerActivity : AppCompatActivity() {
             hour: Int,
             minute: Int,
             name: String = "",
-            dose: String = ""
+            dose: String = "",
+            medCount: Int = 1
         ): Intent = Intent(ctx, ReminderBannerActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                 Intent.FLAG_ACTIVITY_CLEAR_TOP or
@@ -188,6 +195,7 @@ class ReminderBannerActivity : AppCompatActivity() {
             putExtra(EXTRA_MINUTE, minute)
             putExtra(EXTRA_NAME, name)
             putExtra(EXTRA_DOSE, dose)
+            putExtra(EXTRA_MED_COUNT, medCount)
         }
     }
 }

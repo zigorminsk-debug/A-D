@@ -55,8 +55,8 @@ class MedsFragment : Fragment() {
             onToggle = { med, enabled ->
                 val updated = med.copy(enabled = enabled)
                 store.updateMed(updated)
-                if (enabled) ReminderScheduler.scheduleMedAll(requireContext(), updated)
-                else ReminderScheduler.cancelMed(requireContext(), med)
+                if (enabled) ReminderScheduler.rescheduleAllMeds(requireContext())
+                else ReminderScheduler.cancelAllMeds(requireContext()); ReminderScheduler.rescheduleAllMeds(requireContext())
                 refresh()
             },
             onTap = { med -> showActions(med) },
@@ -145,7 +145,7 @@ class MedsFragment : Fragment() {
             .setTitle(R.string.delete_record_title)
             .setMessage(R.string.med_delete_confirm)
             .setPositiveButton(R.string.delete) { _, _ ->
-                ReminderScheduler.cancelMed(requireContext(), med)
+                ReminderScheduler.cancelAllMeds(requireContext()); ReminderScheduler.rescheduleAllMeds(requireContext())
                 store.deleteMed(med.id)
                 refresh()
             }
@@ -341,7 +341,7 @@ class MedsFragment : Fragment() {
                 // Проверяем запись: молча терять препарат нельзя.
                 if (med.id != 0 && store.meds().any { it.id == med.id }) {
                     // Будильники ставятся на каждое рассчитанное время приёма.
-                    ReminderScheduler.scheduleMedAll(requireContext(), med)
+                    ReminderScheduler.rescheduleAllMeds(requireContext())
                     saved = true
                 }
             } else {
@@ -355,8 +355,8 @@ class MedsFragment : Fragment() {
                 store.updateMed(updated)
                 val written = store.meds().firstOrNull { it.id == updated.id }
                 if (written != null && written.times.size == slots.size) {
-                    ReminderScheduler.cancelMed(requireContext(), edit)
-                    ReminderScheduler.scheduleMedAll(requireContext(), updated)
+                    ReminderScheduler.cancelAllMeds(requireContext())
+                    ReminderScheduler.rescheduleAllMeds(requireContext())
                     saved = true
                 }
             }

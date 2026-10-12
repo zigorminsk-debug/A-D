@@ -380,6 +380,7 @@
     <string name="reminder_banner_snoozed_toast">Напоминание повторится через 30 минут</string>
     <string name="reminder_banner_badge_measure">Замер АД</string>
     <string name="reminder_banner_badge_med">Приём лекарства</string>
+    <string name="reminder_banner_badge_meds_multi">Приём лекарств (%1$d)</string>
     <string name="reminder_banner_action_measure">Измерить артериальное давление и записать в дневник</string>
     <string name="reminder_banner_action_med">Принять назначенный препарат и отметить приём в списке</string>
 <string name="test_banner_title">Проверка напоминаний</string>

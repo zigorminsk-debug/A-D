@@ -19,18 +19,38 @@ class AlarmReceiver : BroadcastReceiver() {
             val type = intent.getStringExtra("type") ?: "measure"
             val isSnooze = intent.getBooleanExtra(ReminderScheduler.EXTRA_SNOOZE, false)
 
+            // Проверяем, сколько лекарств назначено на данное время (час:минута)
+            var finalName = intent.getStringExtra("name") ?: ""
+            var finalDose = intent.getStringExtra("dose") ?: ""
+            var medCount = 1
+
+            if (type == "med" && !isSnooze) {
+                val store = Store(context)
+                val sameTimeMeds = store.meds().filter { it.enabled }.mapNotNull { m ->
+                    val t = m.times.firstOrNull { it.enabled && it.hour == hour && it.minute == minute }
+                    if (t != null) m else null
+                }
+                if (sameTimeMeds.size > 1) {
+                    medCount = sameTimeMeds.size
+                    // Объединяем названия: например, "Лозартан (50 мг) + Амлодипин (5 мг)"
+                    finalName = sameTimeMeds.joinToString(" + ") { m ->
+                        if (m.dose.isNotBlank()) "${m.name} (${m.dose})" else m.name
+                    }
+                    finalDose = ""
+                }
+            }
+
             when (type) {
                 "med" -> {
-                    val name = intent.getStringExtra("name") ?: ""
-                    val dose = intent.getStringExtra("dose") ?: ""
-                    // Звук канала воспроизводится только на Android < 8.0,
-                    // а на Android 8+ мы играем звук через Notifications.playMedSignal,
-                    // чтобы исключить одновременное наложение двух звуков!
-                    Notifications.showMed(context, id, name, dose, hour, minute)
+                    // Звучит строго один раз на это время
+                    Notifications.showMed(context, id, finalName, finalDose, hour, minute)
                     Notifications.playMedSignal(context)
                     hold = true
                     if (!isSnooze) {
-                        ReminderScheduler.scheduleMedSlot(context, id, hour, minute, name, dose)
+                        ReminderScheduler.scheduleMedSlot(context, id, hour, minute, finalName, finalDose)
+                    } else {
+                        // После откладывания восстанавливаем постоянное расписание на следующие дни
+                        ReminderScheduler.rescheduleAllMeds(context)
                     }
                 }
                 else -> {
@@ -58,8 +78,9 @@ class AlarmReceiver : BroadcastReceiver() {
                     id = id,
                     hour = hour,
                     minute = minute,
-                    name = intent.getStringExtra("name") ?: "",
-                    dose = intent.getStringExtra("dose") ?: ""
+                    name = finalName,
+                    dose = finalDose,
+                    medCount = medCount
                 )
                 context.startActivity(bannerIntent)
             } catch (_: Exception) {
