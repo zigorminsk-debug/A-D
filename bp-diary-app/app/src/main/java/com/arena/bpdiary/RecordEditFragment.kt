@@ -123,6 +123,7 @@ class RecordEditFragment : Fragment() {
         }
 
         updateWhenButton()
+        setupAutoAdvance()
         b.btnWhen.setOnClickListener {
             if (childFragmentManager.findFragmentByTag("record-date") != null) return@setOnClickListener
             whenTouched = true
@@ -658,6 +659,63 @@ class RecordEditFragment : Fragment() {
         localCal.set(Calendar.MONTH, utcCal.get(Calendar.MONTH))
         localCal.set(Calendar.DAY_OF_MONTH, utcCal.get(Calendar.DAY_OF_MONTH))
         return localCal.timeInMillis
+    }
+
+        private fun setupAutoAdvance() {
+        fun scrollToView(v: View) {
+            b.pageScroll.post {
+                val rect = android.graphics.Rect()
+                v.getDrawingRect(rect)
+                b.pageScroll.offsetDescendantRectToMyCoords(v, rect)
+                b.pageScroll.smoothScrollTo(0, (rect.top - 24).coerceAtLeast(0))
+            }
+        }
+
+        // При фокусе на полях ввода сразу перемещаем поле в видимую область,
+        // чтобы клавиатура его никогда не перекрывала
+        val focusListener = View.OnFocusChangeListener { v, hasFocus ->
+            if (hasFocus) {
+                scrollToView(v)
+            }
+        }
+        b.etSys.onFocusChangeListener = focusListener
+        b.etDia.onFocusChangeListener = focusListener
+        b.etPulse.onFocusChangeListener = focusListener
+        b.etNote.onFocusChangeListener = focusListener
+
+        // Автопереход при вводе 3-х знаков
+        b.etSys.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                if (s != null && s.length == 3 && b.etSys.hasFocus()) {
+                    b.etDia.requestFocus()
+                    scrollToView(b.etDia)
+                }
+            }
+        })
+
+        b.etDia.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                if (s != null && s.length == 3 && b.etDia.hasFocus()) {
+                    b.etPulse.requestFocus()
+                    scrollToView(b.etPulse)
+                }
+            }
+        })
+
+        b.etPulse.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                if (s != null && s.length == 3 && b.etPulse.hasFocus()) {
+                    b.etNote.requestFocus()
+                    scrollToView(b.etNote)
+                }
+            }
+        })
     }
 
     override fun onDestroyView() {

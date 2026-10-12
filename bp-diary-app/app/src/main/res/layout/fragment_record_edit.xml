@@ -26,7 +26,8 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:fillViewport="true">
+        android:fillViewport="true"
+        android:isScrollContainer="true">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -134,6 +135,7 @@
 
             <!-- Карточка с основными полями показателей -->
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardBpFields"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
