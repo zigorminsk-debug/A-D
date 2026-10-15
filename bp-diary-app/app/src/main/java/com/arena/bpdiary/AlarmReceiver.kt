@@ -19,20 +19,38 @@ class AlarmReceiver : BroadcastReceiver() {
             val type = intent.getStringExtra("type") ?: "measure"
             val isSnooze = intent.getBooleanExtra(ReminderScheduler.EXTRA_SNOOZE, false)
 
+            // ДЕДУПЛИКАЦИЯ: Если несколько напоминаний сработали в одну и ту же минуту
+            // (или старые параллельные будильники сработали одновременно),
+            // сигнал должен звучать СТРОГО ОДИН РАЗ, а не для каждого!
+            val nowMs = System.currentTimeMillis()
+            val timeSlotKey = "${type}_${hour}_${minute}"
+            synchronized(alarmLock) {
+                if (nowMs - lastTriggerTime < 15_000L && lastTriggerSlot == timeSlotKey) {
+                    // Это повторный сработавший будильник на то же самое время — гасим дубликат!
+                    pending.finish()
+                    return
+                }
+                lastTriggerTime = nowMs
+                lastTriggerSlot = timeSlotKey
+            }
+
+            // Очищаем старые разрозненные будильники и актуализируем единое расписание
+            ReminderScheduler.rescheduleAllMeds(context)
+
             // Проверяем, сколько лекарств назначено на данное время (час:минута)
             var finalName = intent.getStringExtra("name") ?: ""
             var finalDose = intent.getStringExtra("dose") ?: ""
             var medCount = 1
 
-            if (type == "med" && !isSnooze) {
+            if (type == "med") {
                 val store = Store(context)
                 val sameTimeMeds = store.meds().filter { it.enabled }.mapNotNull { m ->
                     val t = m.times.firstOrNull { it.enabled && it.hour == hour && it.minute == minute }
                     if (t != null) m else null
                 }
-                if (sameTimeMeds.size > 1) {
+                if (sameTimeMeds.isNotEmpty()) {
                     medCount = sameTimeMeds.size
-                    // Объединяем названия: например, "Лозартан (50 мг) + Амлодипин (5 мг)"
+                    // Объединяем названия всех препаратов на это время: "Лозартан (50 мг) + Амлодипин (5 мг)"
                     finalName = sameTimeMeds.joinToString(" + ") { m ->
                         if (m.dose.isNotBlank()) "${m.name} (${m.dose})" else m.name
                     }
@@ -46,12 +64,8 @@ class AlarmReceiver : BroadcastReceiver() {
                     Notifications.showMed(context, id, finalName, finalDose, hour, minute)
                     Notifications.playMedSignal(context)
                     hold = true
-                    if (!isSnooze) {
-                        ReminderScheduler.scheduleMedSlot(context, id, hour, minute, finalName, finalDose)
-                    } else {
-                        // После откладывания восстанавливаем постоянное расписание на следующие дни
-                        ReminderScheduler.rescheduleAllMeds(context)
-                    }
+                    // Планируем постоянное расписание (единый будильник на каждую точку времени)
+                    ReminderScheduler.rescheduleAllMeds(context)
                 }
                 else -> {
                     Notifications.show(
@@ -109,5 +123,10 @@ class AlarmReceiver : BroadcastReceiver() {
         } else {
             pending.finish()
         }
+    }
+    companion object {
+        private val alarmLock = Any()
+        @Volatile private var lastTriggerTime: Long = 0L
+        @Volatile private var lastTriggerSlot: String = ""
     }
 }
